@@ -31,7 +31,7 @@
 //
 
 #include <type_traits>
-#include <stl/utility>
+#include <stl/utility.hpp>
 
 
 int main (void)
