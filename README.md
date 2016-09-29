@@ -8,7 +8,8 @@ introductory post).
 The plan for the project is to follow this timeline:
 
 * Chapter 0 - utilities and iterators
-    - pairs, tuples, and integer sequences
+    - utilities and integer sequences
+    - pairs and tuples
     - reference wrappers
     - function objects
     - iterators and range/container access
