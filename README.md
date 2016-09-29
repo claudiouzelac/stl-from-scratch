@@ -2,7 +2,7 @@ stl from scratch
 ----------------
 
 This repository contains the source code for my blog post series [STL From
-Scratch](http://daltonwoodard.com/) (you should follow that link for the
+Scratch][1] (you should follow that link for the
 introductory post).
 
 The plan for the project is to follow this timeline:
@@ -64,6 +64,8 @@ The plan for the project is to follow this timeline:
     - locks and condition variables
     - threads
     - async, tasks, and futures
+
+[1]: http://voidae.com/blog/2016/9/28/stl-from-scratch-introduction
 
 info
 ----
