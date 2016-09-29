@@ -1,0 +1,69 @@
+sudo: required
+dist: precise
+language: cpp
+
+cache:
+  apt: true
+
+matrix:
+  include:
+    - compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
+            - g++-5
+      env: COMPIlER_NAME=g++ COMPILER=g++-5
+    - compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.5
+          packages:
+            - clang-3.5
+      env: COMPILER_NAME=clang++ COMPILER=clang++-3.5 LIBCXXURL=http://llvm.org/svn/llvm-project/libcxx/tags/RELEASE_352/final/ LIBCXXABIURL=http://llvm.org/svn/llvm-project/libcxxabi/tags/RELEASE_352/final/
+    - compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.6
+          packages:
+            - clang-3.6
+      env: COMPILER_NAME=clang++ COMPILER=clang++-3.6 LIBCXXURL=http://llvm.org/svn/llvm-project/libcxx/tags/RELEASE_362/final/ LIBCXXABIURL=http://llvm.org/svn/llvm-project/libcxxabi/tags/RELEASE_362/final/
+    - compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.7
+          packages:
+            - clang-3.7
+      env: COMPILER_NAME=clang++ COMPILER=clang++-3.7 LIBCXXURL=http://llvm.org/svn/llvm-project/libcxx/tags/RELEASE_371/final/ LIBCXXABIURL=http://llvm.org/svn/llvm-project/libcxxabi/tags/RELEASE_371/final/
+    - compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.8
+          packages:
+            - clang-3.8
+      env: COMPILER_NAME=clang++ COMPILER=clang++-3.8 LIBCXXURL=http://llvm.org/svn/llvm-project/libcxx/tags/RELEASE_380/final/ LIBCXXABIURL=http://llvm.org/svn/llvm-project/libcxxabi/tags/RELEASE_380/final/
+
+install:
+  - if [ "$COMPILER_NAME" == "clang++" ]; then svn co --quiet $LIBCXXURL libcxx && pushd libcxx/lib && bash buildit && sudo cp ./libc++.so.1.0 /usr/lib/; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then sudo mkdir /usr/include/c++/v1 && pushd .. && sudo cp -r include/* /usr/include/c++/v1/; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then pushd /usr/lib && sudo ln -sf libc++.so.1.0 libc++.so; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then sudo ln -sf libc++.so.1.0 libc++.so.1 && popd && popd && popd; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then svn co --quiet $LIBCXXABIURL libcxxabi && pushd libcxxabi/lib && bash buildit && sudo cp ./libc++abi.so.1.0 /usr/lib/; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then pushd .. && sudo cp -r include/* /usr/include/c++/v1; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then pushd /usr/lib && sudo ln -sf libc++abi.so.1.0 libc++abi.so; fi
+  - if [ "$COMPILER_NAME" == "clang++" ]; then sudo ln -sf libc++abi.so.1.0 libc++abi.so.1 && popd && popd && popd; fi
+
+script:
+  - make clean && make test CXX=$COMPILER build=debug && sh ./run-tests.sh
+  - make clean && make test CXX=$COMPILER build=opt1 && sh ./run-tests.sh
+  - make clean && make test CXX=$COMPILER build=opt2 && sh ./run-tests.sh
+  - make clean && make test CXX=$COMPILER build=opt3 && sh ./run-tests.sh
