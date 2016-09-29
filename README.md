@@ -1,6 +1,8 @@
 stl from scratch
 ----------------
 
+[![Build Status](https://travis-ci.org/daltonwoodard/stl-from-scratch.svg?branch=master)](https://travis-ci.org/daltonwoodard/stl-from-scratch)
+
 This repository contains the source code for my blog post series [STL From
 Scratch][1] (you should follow that link for the
 introductory post).
