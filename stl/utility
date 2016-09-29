@@ -135,7 +135,7 @@ namespace rel_ops
      * Like with move, we will be writing the C++17 signatures for forward.
      */
     template <class T>
-    constexpr T && forwawrd (typename std::remove_reference <T>::type & t)
+    constexpr T && forward (typename std::remove_reference <T>::type & t)
         noexcept
     {
         /*
@@ -150,7 +150,7 @@ namespace rel_ops
     template <class T>
     constexpr
     typename std::enable_if <!std::is_lvalue_reference <T>::value, T &&>::type
-        forwawrd (typename std::remove_reference <T>::type && t) noexcept
+        forward (typename std::remove_reference <T>::type && t) noexcept
     {
         /*
          * What to do with an rvalue? We want to return in the same value
@@ -214,18 +214,18 @@ namespace rel_ops
     template <class T, class U = T>
     T exchange (T & a, U && val)
     {
-        T ret {std::move (a)};
-        a = std::forward <U> (val);
+        T ret {stl::move (a)};
+        a = stl::forward <U> (val);
         return ret;
     }
 
     /*
      * Integer sequences are compile time lists of integral values in a type T.
      *
-     * Our implementation is going to use an O(log N) generation technique to
-     * avoid the O(N) runtime of the recursive implementation. The idea is to
-     * generate the sequence two at a time, recursively, and then merge from
-     * the bottom up.
+     * Our implementation is going to use the naive O(N) recursive sequence
+     * generation. A common O(log N) generation technique to avoid the O(N)
+     * runtime of the recursive implementation is to generate the sequence two
+     * at a time, recursively, and then merge from the bottom up.
      */
     template <class T, T ... Is>
     class integer_sequence
@@ -242,32 +242,24 @@ namespace rel_ops
 
 namespace detail
 {
-    template <class, class>
-    struct merge;
+    template <class T, std::size_t N, T ... Is>
+    struct sequence_generator
+    {
+        using type = typename sequence_generator <
+            T, N - 1, T {N - 1}, Is...
+        >::type;
+    };
 
-    /*
-     * This is our merge step. We take advantage of the fact that we're dealing
-     * with integral values, which means we can take a sequence and offset the
-     * values by a constant.
-     */
-    template <class T, T ... I1s, T ... I2s>
-    struct merge <integer_sequence <T, I1s...>, integer_sequence <T, I2s...>>
-        : integer_sequence <T, I1s..., (sizeof... (I1s) + I2s)...>
-    {};
+    template <class T, T ... Is>
+    struct sequence_generator <T, 0, Is...> : integer_sequence <T, Is...> {};
 
     template <class T, T N>
-    struct sequence_generator : merge <
-        typename std::conditional <
-            N / 2 == 0 || N / 2 == 1,
-            integer_sequence <T, N / 2>,
-            typename sequence_generator <T, N / 2>::type
-        >::type,
-        typename std::conditional <
-            (N - N / 2) == 0 || (N - N / 2) == 1,
-            integer_sequence <T, N - N / 2>,
-            typename sequence_generator <T, N - N / 2>::typ
-        >::type
-    > {};
+    struct sequence_generator_helper
+    {
+        static_assert (N >= 0, "cannot produce sequence of negative length");
+
+        using type = typename sequence_generator <T, std::size_t {N}>::type;
+    };
 }   // namespace detail
 
     /*
@@ -280,7 +272,7 @@ namespace detail
 
     template <typename T, T N>
     using make_integer_sequence =
-        typename detail::sequence_generator <T, N>::type;
+        typename detail::sequence_generator_helper <T, N>::type;
 
     template <std::size_t N>
     using make_index_sequence = make_integer_sequence <std::size_t, N>;
