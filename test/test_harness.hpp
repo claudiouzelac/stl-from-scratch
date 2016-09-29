@@ -72,8 +72,8 @@ namespace test
 
     public:
         virtual bool requires_input (void) noexcept = 0;
-        virtual std::unique_ptr <data> operator() (void) = 0;
-        virtual std::unique_ptr <data> operator() (std::string const &) = 0;
+        virtual std::shared_ptr <data> operator() (void) = 0;
+        virtual std::shared_ptr <data> operator() (std::string const &) = 0;
     };
 
     class test
@@ -93,8 +93,8 @@ namespace test
     class harness
     {
         using case_type = std::tuple <
-            std::unique_ptr <test>,
-            std::unique_ptr <generator>,
+            std::shared_ptr <test>,
+            std::shared_ptr <generator>,
             std::vector <std::string>
         >;
 
@@ -116,9 +116,49 @@ namespace test
                 auto & gen   = std::get <1> (c);
                 auto & input = std::get <2> (c);
 
-                if (!test->is_repeatable ()) {
-                    if (!gen->requires_input ()) {
-                        auto data = gen->operator ();
+                if (test->is_repeatable ()) {
+                    if (gen->requires_input ()) {
+                        auto const count = input.size ();
+                        for (std::size_t i = 0; i < count; ++i) {
+                            auto data = gen->operator() (input [i]);
+                            switch (test->operator() (*data)) {
+                                case result::pass:
+                                    break;
+                                case result::fail:
+                                    failed_cases += 1;
+                                    report << "failed test ["
+                                           << test->name ()
+                                           << "] for case ["
+                                           << i + 1 << "/" << count
+                                           << "] ["
+                                           << data->description ()
+                                           << "]\n";
+                                    break;
+                            }
+                        }
+                    } else {
+                        auto const count = test->repeat_count ();
+                        for (std::size_t i = 0; i < count; ++i) {
+                            auto data = gen->operator() (input [i]);
+                            switch (test->operator() (*data)) {
+                                case result::pass:
+                                    break;
+                                case result::fail:
+                                    failed_cases += 1;
+                                    report << "failed test ["
+                                           << test->name ()
+                                           << "] for case ["
+                                           << i + 1 << "/" << count
+                                           << "] ["
+                                           << data->description ()
+                                           << "]\n";
+                                    break;
+                            }
+                        }
+                    }
+                } else {
+                    if (gen->requires_input ()) {
+                        auto data = gen->operator() ();
                         switch (test->operator() (*data)) {
                             case result::pass:
                                 break;
@@ -145,46 +185,6 @@ namespace test
                                        << data->description ()
                                        << "]\n";
                                 break;
-                        }
-                    }
-                } else {
-                    if (gen->requires_input ()) {
-                        auto const count = input.size ();
-                        for (std::size_t i = 0; i < count; ++i) {
-                            auto data = gen->operator (input [i]);
-                            switch (test->operator() (*data)) {
-                                case result::pass:
-                                    break;
-                                case result::fail:
-                                    failed_cases += 1;
-                                    report << "failed test ["
-                                           << test->name ()
-                                           << "] for case ["
-                                           << i + 1 << "/" << count
-                                           << "] ["
-                                           << data->description ()
-                                           << "]\n";
-                                    break;
-                            }
-                        }
-                    } else {
-                        auto const count = test->repeat_count ();
-                        for (std::size_t i = 0; i < count; ++i) {
-                            auto data = gen->operator (input [i]);
-                            switch (test->operator() (*data)) {
-                                case result::pass:
-                                    break;
-                                case result::fail:
-                                    failed_cases += 1;
-                                    report << "failed test ["
-                                           << test->name ()
-                                           << "] for case ["
-                                           << i + 1 << "/" << count
-                                           << "] ["
-                                           << data->description ()
-                                           << "]\n";
-                                    break;
-                            }
                         }
                     }
                 }
