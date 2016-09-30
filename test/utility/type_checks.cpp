@@ -1,5 +1,5 @@
 //
-// Unit tests for our implementation of utility (sans pari). This is really more
+// Unit tests for our implementation of utility (sans pair). This is really more
 // of a check to be sure that things compile correctly.
 //
 // author: Dalton M. Woodard
