@@ -208,7 +208,7 @@ namespace rel_ops
     template <class T, std::size_t N>
     void swap (T (&a_array) [N], T (&b_array) [N])
         noexcept (noexcept (
-            stl::swap (stl::declval <T &> (), stl::declval <T &> ())
+            swap (stl::declval <T &> (), stl::declval <T &> ())
         ))
     {
         for (std::size_t i = 0; i < N; ++i) {
