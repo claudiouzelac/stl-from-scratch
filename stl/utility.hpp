@@ -199,7 +199,7 @@ namespace rel_ops
         ))
     {
         for (std::size_t i = 0; i < N; ++i) {
-            stl::swap (a_array [i], b_array [i]);
+            swap (a_array [i], b_array [i]);
         }
     }
 
