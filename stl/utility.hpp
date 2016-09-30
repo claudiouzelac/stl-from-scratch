@@ -478,37 +478,6 @@ namespace rel_ops
             swap (this->first, other.first);
             swap (this->second, other.second);
         }
-
-    private:
-        T1 & select (bits::index_tag <0>) & noexcept
-        {
-            return this->first;
-        }
-
-        T2 & select (bits::index_tag <1>) & noexcept
-        {
-            return this->second;
-        }
-
-        T1 const & select (bits::index_tag <0>) const & noexcept
-        {
-            return this->first;
-        }
-
-        T2 const & select (bits::index_tag <1>) const & noexcept
-        {
-            return this->second;
-        }
-
-        T1 && select (bits::index_tag <0>) && noexcept
-        {
-            return stl::move (this->first);
-        }
-
-        T2 && select (bits::index_tag <1>) && noexcept
-        {
-            return stl::move (this->second);
-        }
     };
 
     /*
