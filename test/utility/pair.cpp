@@ -30,6 +30,10 @@
 // SOFTWARE.
 //
 
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
+
 #include <cassert>
 #include <type_traits>
 #include <stl/utility.hpp>
@@ -187,16 +191,61 @@ int main (void)
         stl::pair <int, int> c {0, 1};
         stl::pair <int, int> d {1, 0};
 
+        /* equality */
         assert (a == a && "incorrect comparison");
+        assert (!(a == b) && "incorrect comparison");
+        assert (!(a == c) && "incorrect comparison");
+        assert (!(a == d) && "incorrect comparison");
+
+        /* inequality */
         assert (a != b && "incorrect comparison");
         assert (a != c && "incorrect comparison");
         assert (a != d && "incorrect comparison");
+        assert (b != c && "incorrect comparison");
+        assert (b != d && "incorrect comparison");
+        assert (c != a && "incorrect comparison");
+        assert (c != b && "incorrect comparison");
+        assert (c != d && "incorrect comparison");
+        assert (d != a && "incorrect comparison");
+        assert (d != b && "incorrect comparison");
+        assert (d != c && "incorrect comparison");
+
+        /* less than */
         assert (a < b && "incorrect comparison");
         assert (a < c && "incorrect comparison");
         assert (a < d && "incorrect comparison");
+        assert (c < b && "incorrect comparison");
+        assert (c < d && "incorrect comparison");
+        assert (d < b && "incorrect comparison");
+
+        /* less than or equal to */
+        assert (a <= a && "incorrect comparison");
+        assert (a <= b && "incorrect comparison");
+        assert (a <= c && "incorrect comparison");
+        assert (a <= d && "incorrect comparison");
+        assert (c <= c && "incorrect comparison");
+        assert (c <= b && "incorrect comparison");
+        assert (c <= d && "incorrect comparison");
+        assert (d <= d && "incorrect comparison");
+        assert (d <= b && "incorrect comparison");
+
+        /* greater than */
+        assert (b > a && "incorrect comparison");
         assert (b > c && "incorrect comparison");
         assert (b > d && "incorrect comparison");
-        assert (c <= d && "incorrect comparison");
+        assert (d > a && "incorrect comparison");
+        assert (d > c && "incorrect comparison");
+        assert (c > a && "incorrect comparison");
+
+        /* greater than or equal to */
+        assert (b >= b && "incorrect comparison");
+        assert (b >= a && "incorrect comparison");
         assert (b >= c && "incorrect comparison");
+        assert (b >= d && "incorrect comparison");
+        assert (d >= d && "incorrect comparison");
+        assert (d >= a && "incorrect comparison");
+        assert (d >= c && "incorrect comparison");
+        assert (c >= c && "incorrect comparison");
+        assert (c >= a && "incorrect comparison");
     }
 }
