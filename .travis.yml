@@ -13,6 +13,14 @@ matrix:
           sources:
             - ubuntu-toolchain-r-test
           packages:
+            - g++-6
+      env: COMPIlER_NAME=g++ COMPILER=g++-6
+    - compiler: gcc
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+          packages:
             - g++-5
       env: COMPIlER_NAME=g++ COMPILER=g++-5
     - compiler: clang
