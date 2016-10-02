@@ -49,10 +49,15 @@
 
 /*
  * The type_helpers header defines some utility structs for decaying and
- * extracting types. It also contains the implementations of tuple_size
- * and tuple_element for pairs and tuples.
+ * extracting types.
  */
 #include <stl/bits/type_helpers.hpp>
+
+/*
+ * The type_traits header contains the implementations of tuple_size and
+ * tuple_element for pairs and tuples.
+ */
+#include <stl/bits/type_traits.hpp>
 
 
 namespace stl
