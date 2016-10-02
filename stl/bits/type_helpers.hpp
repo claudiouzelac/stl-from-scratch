@@ -35,30 +35,25 @@
 
 #include <cstddef>
 #include <type_traits>
+#include <memory>
 
 
 namespace stl
 {
-    /* forward declaration of reference_wrapper */
+    /* Forward declaration of reference_wrapper. */
     template <class>
     class reference_wrapper;
 
-    /* forward declaration of pair */
-    template <class T1, class T2>
-    class pair;
-
-    /* forward declaration of tuple */
-    template <class ... Ts>
-    class tuple;
-
 namespace bits
 {
+    /* Detects a reference_wrapper object. */
     template <typename>
     struct is_reference_wrapper : std::false_type {};
 
     template <typename T>
     struct is_reference_wrapper <reference_wrapper <T>> : std::true_type {};
 
+    /* Destructures a reference wrapper template. */
     template <typename T>
     struct decay_reference_wrapper
     {
@@ -71,157 +66,113 @@ namespace bits
         using type = T &;
     };
 
-    template <std::size_t I, class Tup>
-    struct tuple_element_helper;
+    /*
+     * Variadic template testing for boolean conjuction for
+     * many instances of a template predicate.
+     */
+    template <class ...>
+    struct predicate_and_value;
 
-    template <std::size_t I, class ... Ts>
-    struct tuple_element_helper <I, tuple <Ts...>>
-    {
-        static_assert (
-            I < sizeof... (Ts), "invalid index into tuple type list"
-        );
+    template <>
+    struct predicate_and_value <> : std::true_type {};
 
-    private:
-        template <std::size_t Idx, class ... Us>
-        struct select_type;
+    template <class P, class ... Ps>
+    struct predicate_and_value <P, Ps...>
+        : std::integral_constant <
+            bool, P::value && predicate_and_value <Ps...>::value
+        >
+    {};
 
-        template <class U, class ... Us>
-        struct select_type <0, U, Us...>
-        {
-            using type = U;
-        };
+    template <template <class> class Predicate, class ... Args>
+    struct predicate_and : predicate_and_value <Predicate <Args>...> {};
 
-        template <std::size_t Idx, class U, class ... Us>
-        struct select_type <Idx, U, Us...> : select_type <Idx - 1, Us...> {};
-
-    public:
-        using type = typename select_type <I, Ts...>::type;
-    };
-
-    template <std::size_t I, class T1, class T2>
-    struct tuple_element_helper <I, pair <T1, T2>>
-    {
-        static_assert (I == 0 || I == 1, "invalid index into pair type list");
-        using type = typename std::conditional <I == 0, T1, T2>::type;
-    };
-
+    /* Helper type for selecting function overloads dependent on I. */
     template <std::size_t I>
     struct index_tag : std::integral_constant <std::size_t, I> {};
-}   // namespace bits
 
-    /* implementation of tuple_element and tuple_size for tuples and pairs */
-    template <std::size_t, class>
-    class tuple_element;
+    /* Helper type for selecting uses_allocator construction for tuple nodes */
+    template <bool b>
+    struct uses_allocator_tag : std::integral_constant <bool, b> {};
+
+    template <class T, class Allocator>
+    using make_uses_allocator_tag = uses_allocator_tag <
+        std::uses_allocator <T, Allocator>::value
+    >;
+
+    /* Selects the I'th type from a parameter pack. */
+    template <std::size_t, class ...>
+    struct select_type_helper;
+
+    template <class T, class ... Ts>
+    struct select_type_helper <0, T, Ts...>
+    {
+        using type = T;
+    };
+
+    template <std::size_t I, class T, class ... Ts>
+    struct select_type_helper <I, T, Ts...> : select_type_helper <I - 1, Ts...>
+    {};
 
     template <std::size_t I, class ... Ts>
-    class tuple_element <I, tuple <Ts...>>
+    struct select_type
     {
-    public:
-        using type = typename bits::tuple_element_helper <
-            I, tuple <Ts...>
-        >::type;
-    };
+        static_assert (
+            I < sizeof... (Ts),
+            "invalid index into template type parameter pack"
+        );
 
-    template <std::size_t I, class T1, class T2>
-    class tuple_element <I, pair <T1, T2>>
-    {
-    public:
-        using type = typename bits::tuple_element_helper <
-            I, pair <T1, T2>
-        >::type;
+        using type = typename select_type_helper <I, Ts...>::type;
     };
-
-    template <std::size_t I, class ... Ts>
-    class tuple_element <I, tuple <Ts...> const>
-    {
-    public:
-        using type = typename std::add_const <
-            typename bits::tuple_element_helper <
-                I, tuple <Ts...>
-            >::type
-        >::type;
-    };
-
-    template <std::size_t I, class T1, class T2>
-    class tuple_element <I, pair <T1, T2> const>
-    {
-    public:
-        using type = typename std::add_const <
-            typename bits::tuple_element_helper <
-                I, pair <T1, T2>
-            >::type
-        >::type;
-    };
-
-    template <std::size_t I, class ... Ts>
-    class tuple_element <I, tuple <Ts...> volatile>
-    {
-    public:
-        using type = typename std::add_volatile <
-            typename bits::tuple_element_helper <
-                I, tuple <Ts...>
-            >::type
-        >::type;
-    };
-
-    template <std::size_t I, class T1, class T2>
-    class tuple_element <I, pair <T1, T2> volatile>
-    {
-    public:
-        using type = typename std::add_volatile <
-            typename bits::tuple_element_helper <
-                I, pair <T1, T2>
-            >::type
-        >::type;
-    };
-
-    template <std::size_t I, class ... Ts>
-    class tuple_element <I, tuple <Ts...> const volatile>
-    {
-    public:
-        using type = typename std::add_cv <
-            typename bits::tuple_element_helper <
-                I, tuple <Ts...>
-            >::type
-        >::type;
-    };
-
-    template <std::size_t I, class T1, class T2>
-    class tuple_element <I, pair <T1, T2> const volatile>
-    {
-    public:
-        using type = typename std::add_cv <
-            typename bits::tuple_element_helper <
-                I, pair <T1, T2>
-            >::type
-        >::type;
-    };
-
-    template <class Tup>
-    class tuple_size;
 
     template <class ... Ts>
-    class tuple_size <tuple <Ts...>>
-        : public std::integral_constant <std::size_t, sizeof... (Ts)> {};
+    using head = select_type <0, Ts...>;
 
-    template <class T1, class T2>
-    class tuple_size <pair <T1, T2>>
-        : public std::integral_constant <std::size_t, 2> {};
+    /* Determines the index of a type in a parameter pack. */
+    template <std::size_t, class, class...>
+    struct type_index_helper;
 
-    template <class Tup>
-    class tuple_size <Tup const>
-        : public std::integral_constant <std::size_t, tuple_size <Tup>::value>
+    template <std::size_t I, class T>
+    struct type_index_helper <I, T>
+    {
+        static_assert (sizeof (T) == 0, "type not found in parameter pack");
+    };
+
+    template <std::size_t I, class T, class ... Ts>
+    struct type_index_helper <I, T, T, Ts...>
+        : std::integral_constant <std::size_t, I>
     {};
 
-    template <class Tup>
-    class tuple_size <Tup volatile>
-        : public std::integral_constant <std::size_t, tuple_size <Tup>::value>
+    template <std::size_t I, class T, class U, class ... Ts>
+    struct type_index_helper <I, T, U, Ts...>
+        : type_index_helper <I + 1, T, Ts...>
     {};
 
-    template <class Tup>
-    class tuple_size <Tup const volatile>
-        : public std::integral_constant <std::size_t, tuple_size <Tup>::value>
+    template <class T, class ... Ts>
+    struct type_index : type_index_helper <0, T, Ts...> {};
+
+    /*
+     * Counts the number of times that a type appears in a parameter pack.
+     */
+    template <std::size_t, class, class...>
+    struct type_multiplicity_helper;
+
+    template <std::size_t M, class T, class... Ts>
+    struct type_multiplicity_helper <M, T, T, Ts...>
+        : std::integral_constant <
+            std::size_t, type_multiplicity_helper <M + 1, T, Ts...>::value
+        >
     {};
+
+    template <std::size_t M, class T, class U, class... Ts>
+    struct type_multiplicity_helper <M, T, U, Ts...>
+        : std::integral_constant <
+            std::size_t, type_multiplicity_helper <M, T, Ts...>::value
+        >
+    {};
+
+    template <class T, class ... Ts>
+    struct type_multiplicity : type_multiplicity_helper <0, T, Ts...> {};
+}   // namespace bits
 }   // namespace stl
 
 #endif  // #ifndef STL_FROM_SCRATCH_BITS_TYPE_HELPERS_HEADER
