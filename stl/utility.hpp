@@ -497,46 +497,46 @@ namespace rel_ops
      */
     template <class T1, class T2>
     constexpr bool
-        operator== (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator== (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return p1.first == p2.first && p1.second == p2.second;
+        return lhs.first == rhs.first && lhs.second == rhs.second;
     }
 
     template <class T1, class T2>
     constexpr bool
-        operator!= (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator!= (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return p1.first != p2.first || p1.second != p2.second;
+        return lhs.first != rhs.first || lhs.second != rhs.second;
     }
 
     template <class T1, class T2>
     constexpr bool
-        operator< (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator< (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return p1.first < p2.first ? true  :
-               p2.first < p2.first ? false :
-               p1.second < p2.second;
+        return lhs.first < rhs.first ? true :
+               rhs.first < lhs.first ? false :
+               lhs.second < rhs.second ? true : false;
     }
 
     template <class T1, class T2>
     constexpr bool
-        operator> (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator<= (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return p2 < p1;
+        return !(rhs < lhs); 
     }
 
     template <class T1, class T2>
     constexpr bool
-        operator<= (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator> (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return !(p2 < p1); 
+        return rhs < lhs;
     }
 
     template <class T1, class T2>
     constexpr bool
-        operator>= (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator>= (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return !(p1 < p2); 
+        return !(lhs < rhs); 
     }
 
     /*
