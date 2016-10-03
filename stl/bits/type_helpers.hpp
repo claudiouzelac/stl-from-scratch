@@ -70,21 +70,21 @@ namespace bits
      * Variadic template testing for boolean conjuction for
      * many instances of a template predicate.
      */
-    template <class ...>
-    struct predicate_and_value;
+    template <bool...>
+    struct fold_and;
 
     template <>
-    struct predicate_and_value <> : std::true_type {};
+    struct fold_and <> : std::integral_constant <bool, true> {};
 
-    template <class P, class ... Ps>
-    struct predicate_and_value <P, Ps...>
-        : std::integral_constant <
-            bool, P::value && predicate_and_value <Ps...>::value
-        >
-    {};
+    template <bool b>
+    struct fold_and <b> : std::integral_constant <bool, b> {};
+
+    template <bool b, bool ... bs>
+    struct fold_and <b, bs...>
+        : std::integral_constant <bool, b && fold_and <bs...>::value> {};
 
     template <template <class> class Predicate, class ... Args>
-    struct predicate_and : predicate_and_value <Predicate <Args>...> {};
+    struct predicate_and : fold_and <Predicate <Args>::value...> {};
 
     /* Helper type for selecting function overloads dependent on I. */
     template <std::size_t I>
