@@ -48,6 +48,13 @@ namespace bits
         ignore_type (void) noexcept {}
         ~ignore_type (void) noexcept {}
 
+        /*
+         * Construction from any type; it performs nothing and does not modify
+         * its argument in any way.
+         */
+        template <typename T>
+        ignore_type (T &&) noexcept {}
+
         /* default all the special constructors */
         ignore_type (ignore_type &&) noexcept      = default;
         ignore_type (ignore_type const &) noexcept = default;
