@@ -156,6 +156,11 @@ namespace bits
     template <std::size_t, class, class...>
     struct type_multiplicity_helper;
 
+    template <std::size_t M, class T>
+    struct type_multiplicity_helper <M, T>
+        : std::integral_constant <std::size_t, M>
+    {};
+
     template <std::size_t M, class T, class... Ts>
     struct type_multiplicity_helper <M, T, T, Ts...>
         : std::integral_constant <
