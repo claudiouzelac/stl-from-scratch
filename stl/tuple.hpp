@@ -442,10 +442,7 @@ namespace detail
          * This constructor delegates to the converting constructor taking a
          * list of references to the const member objects of p.
          */
-        template <
-            class U1, class U2,
-            typename = typename std::enable_if <size::value == 2>::type
-        >
+        template <class U1, class U2>
         constexpr tuple_impl (pair <U1, U2> const & p)
             : tuple_impl (p.first, p.second)
         {}
@@ -464,13 +461,10 @@ namespace detail
          * This constructor delegates to the converting constructor taking a
          * list of forwarding references to the member objects of p.
          */
-        template <
-            class U1, class U2,
-            typename = typename std::enable_if <size::value == 2>::type
-        >
+        template <class U1, class U2>
         constexpr tuple_impl (pair <U1, U2> && p)
-            : tuple_impl (stl::forward <U1> (p.first),
-                          stl::forward <U2> (p.second))
+            : tuple_impl (stl::forward <U1> (stl::move (p.first)),
+                          stl::forward <U2> (stl::move (p.second)))
         {}
 
         /* Defaulted copy and move constructors. */
@@ -650,10 +644,7 @@ namespace detail
          * constructor taking a list of references to the const member objects
          * of p.
          */
-        template <
-            class Allocator, class U1, class U2,
-            typename = typename std::enable_if <size::value == 2>::type
-        >
+        template <class Allocator, class U1, class U2>
         constexpr tuple_impl (std::allocator_arg_t,
                               Allocator const & alloc,
                               pair <U1, U2> const & p)
@@ -675,18 +666,15 @@ namespace detail
          * constructor taking a list of forwarding references to the member
          * objects of p.
          */
-        template <
-            class Allocator, class U1, class U2,
-            typename = typename std::enable_if <size::value == 2>::type
-        >
+        template <class Allocator, class U1, class U2>
         constexpr tuple_impl (std::allocator_arg_t,
                               Allocator const & alloc,
                               pair <U1, U2> && p)
             : tuple_impl (
                 std::allocator_arg_t {},
                 alloc,
-                stl::forward <U1> (p.first),
-                stl::forward <U2> (p.second)
+                stl::forward <U1> (stl::move (p.first)),
+                stl::forward <U2> (stl::move (p.second))
             )
         {}
 
@@ -783,12 +771,13 @@ namespace detail
          *
          * This assignment operator requires that sizeof... (Ts) == 2.
          */
-        template <
-            class U1, class U2,
-            typename = typename std::enable_if <size::value == 2>::type
-        >
+        template <class U1, class U2>
         tuple_impl & operator= (pair <U1, U2> const & p)
         {
+            static_assert (
+                size::value == 2 && sizeof (U1), "cannot assign pair to tuple"
+            );
+
             bits::ignore_type _expression_eater [] = {{
                 ((type_node <I, Ts>::member = stl::get <I> (p)), I)...
             }};
@@ -804,12 +793,13 @@ namespace detail
          *
          * This assignment operator requires that sizeof... (Ts) == 2.
          */
-        template <
-            class U1, class U2,
-            typename = typename std::enable_if <size::value == 2>::type
-        >
+        template <class U1, class U2>
         tuple_impl & operator= (pair <U1, U2> && p) noexcept
         {
+            static_assert (
+                size::value == 2 && sizeof (U1), "cannot assign pair to tuple"
+            );
+
             bits::ignore_type _expression_eater [] = {{
                 ((type_node <I, Ts>::member = stl::get <I> (stl::move (p))),
                  I)...
@@ -952,6 +942,17 @@ namespace detail
     class tuple;
 
     /*
+     * Forward declare helper structs for get and comparison implementations.
+     */
+namespace detail
+{
+    template <class>
+    struct get_impl;
+
+    struct compare_impl;
+};
+
+    /*
      * Empty tuple. This differs from other tuples in a few ways, most notably
      * in the list of constructors and the fact that it does not inherit from
      * any tuple_node base. Each constructor and assignment operator also
@@ -960,16 +961,6 @@ namespace detail
     template <>
     class tuple <>
     {
-        friend constexpr bool operator== (tuple const &, tuple const &)
-        {
-            return true;
-        }
-
-        friend constexpr bool operator< (tuple const &, tuple const &)
-        {
-            return false;
-        }
-
     public:
         constexpr tuple (void) {}
         ~tuple (void) noexcept = default;
@@ -1042,60 +1033,8 @@ namespace detail
             return static_cast <base &&> (stl::move (t));
         }
 
-        /*
-         * The get <N> (tuple) methods are implemented here as friend functions
-         * so that they have access to the object-slicing capabilities for an
-         * efficient implementation (rather than implementing them recursively).
-         */
-        template <std::size_t I>
-        friend constexpr typename stl::tuple_element <I, tuple <Ts...>>::type &
-            get (tuple & t) noexcept
-        {
-            using type = typename stl::tuple_element <I, tuple <Ts...>>::type;
-            using node = typename base::template type_node <I, type>;
-
-            return static_cast <node &> (t).member;
-        }
-
-        template <std::size_t I>
-        friend constexpr
-        typename stl::tuple_element <I, tuple <Ts...>>::type const &
-            get (tuple const & t) noexcept
-        {
-            using type = typename stl::tuple_element <I, tuple <Ts...>>::type;
-            using node = typename base::template type_node <I, type>;
-
-            return static_cast <node const &> (t).member;
-        }
-
-        template <std::size_t I>
-        friend constexpr typename stl::tuple_element <I, tuple <Ts...>>::type &&
-            get (tuple && t) noexcept
-        {
-            using type = typename stl::tuple_element <I, tuple <Ts...>>::type;
-            using node = typename base::template type_node <I, type>;
-
-            return static_cast <node &&> (stl::move (t)).member;
-        }
-
-        /*
-         * The equality and less-than operators are implemented here as friend
-         * functions so that they have access to the respective operators for
-         * the base ndoes.
-         */
-        template <class ... Us>
-        friend constexpr bool operator== (tuple const & lhs,
-                                          tuple <Us...> const & rhs)
-        {
-            return base_slice (lhs) == tuple <Us...>::base_slice (rhs);
-        }
-
-        template <class ... Us>
-        friend constexpr bool operator< (tuple const & lhs,
-                                         tuple <Us...> const & rhs)
-        {
-            return base_slice (lhs) < tuple <Us...>::base_slice (rhs);
-        }
+        friend struct detail::get_impl <tuple>;
+        friend struct detail::compare_impl;
 
     public:
         /*
@@ -1448,45 +1387,121 @@ namespace detail
     }
 
     /*
+     * Index based get <>. This does not compile if the index is greater than
+     * one less than the number of types.
+     *
+     * We will be using the C++14 signatures.
+     */
+namespace detail
+{
+    template <class ... Ts>
+    struct get_impl <tuple <Ts...>>
+    {
+        template <std::size_t I>
+        static constexpr typename stl::tuple_element <I, tuple <Ts...>>::type &
+            do_get (tuple <Ts...> & t) noexcept
+        {
+            using tup  = tuple <Ts...>;
+            using type = typename stl::tuple_element <I, tup>::type;
+            using node = typename tup::base::template type_node <I, type>;
+
+            return static_cast <node &> (t).member;
+        }
+
+        template <std::size_t I>
+        static constexpr
+        typename stl::tuple_element <I, tuple <Ts...>>::type const &
+            do_get (tuple <Ts...> const & t) noexcept
+        {
+            using tup  = tuple <Ts...>;
+            using type = typename stl::tuple_element <I, tup>::type;
+            using node = typename tup::base::template type_node <I, type>;
+
+            return static_cast <node const &> (t).member;
+        }
+
+        template <std::size_t I>
+        static constexpr typename stl::tuple_element <I, tuple <Ts...>>::type &&
+            do_get (tuple <Ts...> && t) noexcept
+        {
+            using tup  = tuple <Ts...>;
+            using type = typename stl::tuple_element <I, tup>::type;
+            using node = typename tup::base::template type_node <I, type>;
+
+            return stl::forward <type &&> (static_cast <node &> (t).member);
+        }
+    };
+}   // namespace detail
+
+    template <std::size_t I, class ... Ts>
+    constexpr typename stl::tuple_element <I, tuple <Ts...>>::type &
+        get (tuple <Ts...> & t) noexcept
+    {
+        return detail::get_impl <tuple <Ts...>>::template do_get <I> (t);
+    }
+
+    template <std::size_t I, class ... Ts>
+    constexpr typename stl::tuple_element <I, tuple <Ts...>>::type const &
+        get (tuple <Ts...> const & t) noexcept
+    {
+        return detail::get_impl <tuple <Ts...>>::template do_get <I> (t);
+    }
+
+    template <std::size_t I, class ... Ts>
+    constexpr typename stl::tuple_element <I, tuple <Ts...>>::type &&
+        get (tuple <Ts...> && t) noexcept
+    {
+        return detail::get_impl <tuple <Ts...>>::template do_get <I> (
+            stl::move (t)
+        );
+    }
+
+    /*
      * Type based get <>. This does not compile if the tuple has more than
      * one element of that type or if this is the empty tuple.
      *
      * We will be using the C++14 signatures.
      */
-    template <class S, class T, class ... Ts>
-    constexpr S & get (tuple <T, Ts...> & t) noexcept
+    template <class S, class ... Ts>
+    constexpr S & get (tuple <Ts...> & t) noexcept
     {
-        using index        = bits::type_index <S, T, Ts...>;
-        using multiplicity = bits::type_multiplicity <S, T, Ts...>;
+        static_assert (sizeof... (Ts) != 0, "cannot extract from empty tuple");
+
+        using index        = bits::type_index <S, Ts...>;
+        using multiplicity = bits::type_multiplicity <S, Ts...>;
         static_assert (
             multiplicity::value == 1, "cannot extract repeated element type"
         );
 
-        return get <index> (t);
+        return get <index::value> (t);
     }
 
-    template <class S, class T, class ... Ts>
-    constexpr S const & get (tuple <T, Ts...> const & t) noexcept
+    template <class S, class ... Ts>
+    constexpr S const & get (tuple <Ts...> const & t) noexcept
     {
-        using index        = bits::type_index <S, T, Ts...>;
-        using multiplicity = bits::type_multiplicity <S, T, Ts...>;
+        static_assert (sizeof... (Ts) != 0, "cannot extract from empty tuple");
+
+        using index        = bits::type_index <S, Ts...>;
+        using multiplicity = bits::type_multiplicity <S, Ts...>;
         static_assert (
             multiplicity::value == 1, "cannot extract repeated element type"
         );
 
-        return get <index> (t);
+        return get <index::value> (t);
     }
 
-    template <class S, class T, class ... Ts>
-    constexpr S && get (tuple <T, Ts...> && t) noexcept
+    template <class S, class ... Ts>
+    constexpr S && get (tuple <Ts...> && t) noexcept
     {
-        using index        = bits::type_index <S, T, Ts...>;
-        using multiplicity = bits::type_multiplicity <S, T, Ts...>;
+        static_assert (sizeof... (Ts) != 0, "cannot extract from empty tuple");
+
+        using index        = bits::type_index <S, Ts...>;
+        using multiplicity = bits::type_multiplicity <S, Ts...>;
         static_assert (
             multiplicity::value == 1, "cannot extract repeated element type"
         );
 
-        return get <index> (stl::move (t));
+        return get <index::value> (stl::move (t));
     }
 
     /*
@@ -1503,17 +1518,67 @@ namespace detail
     /*
      * Here we must write lexicographic comparisons for tuples (as per the spec,
      * all comparisons must be short-circuited). The two comparisons that we
-     * actually implemented by hand are operator== and operator<, defiend above
-     * inline with the tuple class. All other omparisons can be derived from
-     * these.
+     * actually implement by hand are operator== and operator<.
      *
      * We'll be using the C++14 signature.
      */
+namespace detail
+{
+    struct compare_impl
+    {
+        static constexpr bool do_eq (tuple <> const &,
+                                     tuple <> const &) noexcept
+        {
+            return true;
+        }
+
+        static constexpr bool do_lt (tuple <> const &,
+                                     tuple <> const &) noexcept
+        {
+            return false;
+        }
+
+        template <class ... Ts, class ... Us>
+        static constexpr bool do_eq (tuple <Ts...> const & lhs,
+                                     tuple <Us...> const & rhs) noexcept
+        {
+            using lhs_tuple = tuple <Ts...>;
+            using rhs_tuple = tuple <Ts...>;
+
+            return lhs_tuple::base_slice (lhs) == rhs_tuple::base_slice (rhs);
+        }
+
+        template <class ... Ts, class ... Us>
+        static constexpr bool do_lt (tuple <Ts...> const & lhs,
+                                     tuple <Us...> const & rhs) noexcept
+        {
+            using lhs_tuple = tuple <Ts...>;
+            using rhs_tuple = tuple <Ts...>;
+
+            return lhs_tuple::base_slice (lhs) < rhs_tuple::base_slice (rhs);
+        }
+    };
+}   // namespace detail
+
+    template <class ... Ts, class ... Us>
+    constexpr bool operator== (tuple <Ts...> const & lhs,
+                               tuple <Us...> const & rhs)
+    {
+        return detail::compare_impl::do_eq (lhs, rhs);
+    }
+
     template <class ... Ts, class ... Us>
     constexpr bool operator!= (tuple <Ts...> const & lhs,
                                tuple <Us...> const & rhs)
     {
         return !(lhs == rhs);
+    }
+
+    template <class ... Ts, class ... Us>
+    constexpr bool operator< (tuple <Ts...> const & lhs,
+                              tuple <Us...> const & rhs)
+    {
+        return detail::compare_impl::do_lt (lhs, rhs);
     }
 
     template <class ... Ts, class ... Us>
@@ -1536,6 +1601,36 @@ namespace detail
     {
         return !(lhs < rhs);
     }
+
+    /*
+     * Lasly, now that tuples have been implemented we can define the
+     * piecewise constructor for pair.
+     */
+    template <class T1, class T2>
+        template <
+            std::size_t ... I1, std::size_t ... I2,
+            class ... Args1, class ... Args2
+        >
+    pair <T1, T2>::pair (stl::index_sequence <I1...>,
+                         stl::index_sequence <I2...>,
+                         tuple <Args1...> first_args,
+                         tuple <Args2...> second_args)
+        : first  (stl::get <I1> (first_args)...)
+        , second (stl::get <I2> (second_args)...)
+    {}
+
+    template <class T1, class T2>
+        template <class ... Args1, class ... Args2>
+    pair <T1, T2>::pair (stl::piecewise_construct_t,
+                        tuple <Args1...> first_args,
+                        tuple <Args2...> second_args)
+        : pair (
+            stl::make_index_sequence <sizeof... (Args1)> {},
+            stl::make_index_sequence <sizeof... (Args2)> {},
+            first_args,
+            second_args
+        )
+    {}
 }   // namespace stl
 
 #endif  // #ifndef STL_FROM_SCRATCH_TUPlE_HEADER
