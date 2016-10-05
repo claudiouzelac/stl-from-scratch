@@ -49,10 +49,15 @@
 
 /*
  * The type_helpers header defines some utility structs for decaying and
- * extracting types. It also contains the implementations of tuple_size
- * and tuple_element for pairs and tuples.
+ * extracting types.
  */
 #include <stl/bits/type_helpers.hpp>
+
+/*
+ * The type_traits header contains the implementations of tuple_size and
+ * tuple_element for pairs and tuples.
+ */
+#include <stl/bits/type_traits.hpp>
 
 
 namespace stl
@@ -276,28 +281,6 @@ namespace rel_ops
     template <class ... Ts>
     class tuple;
 
-    /*
-     * We also need to forward declare get for tuples. These are the C++14
-     * signatures.
-     */
-    template <std::size_t I, class ... Ts>
-    constexpr typename bits::tuple_element_helper <I, tuple <Ts...>>::type &
-        get (tuple <Ts...> & t) noexcept;
-
-    template <std::size_t I, class ... Ts>
-    constexpr typename bits::tuple_element_helper <I, tuple <Ts...>>::type &&
-        get (tuple <Ts...> && t) noexcept;
-
-    template <std::size_t I, class ... Ts>
-    constexpr
-    typename bits::tuple_element_helper <I, tuple <Ts...>>::type const &
-        get (tuple <Ts...> const & t) noexcept;
-
-    template <std::size_t I, class ... Ts>
-    constexpr
-    typename bits::tuple_element_helper <I, tuple <Ts...>>::type const &&
-        get (tuple <Ts...> const && t) noexcept;
-
     /* 
      * piecewise_construct_t is a type tag used to select pair and tuple
      * constructors where the constructor arguments may be ambiguous.
@@ -370,44 +353,25 @@ namespace rel_ops
         {}
 
     private:
-        /*
-         * Helper constructor for the piecewise_construct_t overload of pair.
-         */
-        template <class T, class ... Args, std::size_t ... I>
-        static T &&
-        element_constructor (tuple <Args...> && tup, index_sequence <I...>)
-        {
-            static_assert (
-                std::is_constructible <T, Args...>::value,
-                "cannot construct member object type from provided arguments"
-            );
-
-            /* both Args and I are simultaneously unpacked */
-            return T {stl::forward <Args> (get <I> (stl::move (tup)))...};
-        }
+        template <
+            std::size_t ... I1, std::size_t ... I2,
+            class ... Args1, class ... Args2
+        >
+        pair (stl::index_sequence <I1...>,
+              stl::index_sequence <I2...>,
+              tuple <Args1...> first_args,
+              tuple <Args2...> second_args);
 
     public:
         /*
          * Constructs first and second from the forwarded elements of each
-         * argument tuple, respectively.
+         * argument tuple, respectively. This constructor will be defined
+         * in the tuple.hpp file. Since this must allow for non-copyable and
+         * non-movable types we'll have to forward to the above private
+         * constructor that can properly construct the member objects.
          */
         template <class ... Args1, class ... Args2>
-        pair (piecewise_construct_t,
-              tuple <Args1...> first_args,
-              tuple <Args2...> second_args)
-            : first (
-                element_constructor <first_type> (
-                    stl::move (first_args),
-                    make_index_sequence <sizeof... (Args1)> {}
-                )
-            )
-            , second (
-                element_constructor <second_type> (
-                    stl::move (second_args),
-                    make_index_sequence <sizeof... (Args2)> {}
-                )
-            )
-        {}
+        pair (piecewise_construct_t, tuple <Args1...>, tuple <Args2...>);
 
         /* we can default this and let the compiler generate the destructor */
         ~pair (void) noexcept = default;
@@ -492,46 +456,46 @@ namespace rel_ops
      */
     template <class T1, class T2>
     constexpr bool
-        operator== (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator== (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return p1.first == p2.first && p1.second == p2.second;
+        return lhs.first == rhs.first && lhs.second == rhs.second;
     }
 
     template <class T1, class T2>
     constexpr bool
-        operator!= (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator!= (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return p1.first != p2.first || p1.second != p2.second;
+        return lhs.first != rhs.first || lhs.second != rhs.second;
     }
 
     template <class T1, class T2>
     constexpr bool
-        operator< (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator< (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return p1.first < p2.first ? true  :
-               p2.first < p2.first ? false :
-               p1.second < p2.second;
+        return lhs.first < rhs.first ? true :
+               rhs.first < lhs.first ? false :
+               lhs.second < rhs.second ? true : false;
     }
 
     template <class T1, class T2>
     constexpr bool
-        operator> (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator<= (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return p2 < p1;
+        return !(rhs < lhs); 
     }
 
     template <class T1, class T2>
     constexpr bool
-        operator<= (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator> (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return !(p2 < p1); 
+        return rhs < lhs;
     }
 
     template <class T1, class T2>
     constexpr bool
-        operator>= (pair <T1, T2> const & p1, pair <T1, T2> const & p2)
+        operator>= (pair <T1, T2> const & lhs, pair <T1, T2> const & rhs)
     {
-        return !(p1 < p2); 
+        return !(lhs < rhs); 
     }
 
     /*
