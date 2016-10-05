@@ -324,4 +324,21 @@ int main (void)
         assert (vec.size () == 4);
         assert (vec [3] == 4);
     }
+
+    /* do tie and make_tuple work as expected? */
+    {
+        struct foo { int x; };
+
+        int a;
+        double b;
+        foo c;
+
+        stl::tie (a, b, c) = [] (void) {
+            return stl::make_tuple (1, 2.0, foo {3});
+        } ();
+
+        assert (a == 1);
+        assert (b == 2.0);
+        assert (c.x == 3);
+    }
 }
