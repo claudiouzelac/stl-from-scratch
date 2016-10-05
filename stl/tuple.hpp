@@ -30,8 +30,8 @@
 // SOFTWARE.
 //
 
-#ifndef STL_FROM_SCRATCH_TUPlE_HEADER
-#define STL_FROM_SCRATCH_TUPlE_HEADER
+#ifndef STL_FROM_SCRATCH_TUPLE_HEADER
+#define STL_FROM_SCRATCH_TUPLE_HEADER
 
 /*
  * memory defines std::allocator_arg_t for tuple constructor selection and
@@ -1633,4 +1633,4 @@ namespace detail
     {}
 }   // namespace stl
 
-#endif  // #ifndef STL_FROM_SCRATCH_TUPlE_HEADER
+#endif  // #ifndef STL_FROM_SCRATCH_TUPLE_HEADER
