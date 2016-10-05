@@ -442,11 +442,11 @@ namespace detail
          */
         tuple_impl & operator= (tuple_impl const & other)
         {
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member =
                     other.template type_node <I, Ts>::member),
                  I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -463,11 +463,11 @@ namespace detail
                 >::value
             )
         {
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member =
                     stl::move (other.template type_node <I, Ts>::member)),
                  I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -480,11 +480,11 @@ namespace detail
         template <class ... Us>
         tuple_impl & operator= (rebind <Us...> const & other)
         {
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member =
                     other.template type_node <I, Us>::member),
                  I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -497,11 +497,11 @@ namespace detail
         template <class ... Us>
         tuple_impl & operator= (rebind <Us...> && other)
         {
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member = stl::forward <Us> (
                     other.template type_node <I, Us>::member
                 )), I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -514,9 +514,9 @@ namespace detail
         template <class U1, class U2>
         tuple_impl & operator= (pair <U1, U2> const & p)
         {
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member = stl::get <I> (p)), I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -530,10 +530,10 @@ namespace detail
         template <class U1, class U2>
         tuple_impl & operator= (pair <U1, U2> && p) noexcept
         {
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member = stl::get <I> (stl::move (p))),
                  I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -554,10 +554,10 @@ namespace detail
         {
             using stl::swap;
 
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((swap (type_node <I, Ts>::member,
                         other.template type_node <I, Ts>::member)), I)...
-            }};
+            };
             (void) _expression_eater;
         }
 
@@ -656,6 +656,9 @@ namespace detail
 namespace detail
 {
     template <class>
+    struct base_access;
+
+    template <class>
     struct get_impl;
 
     struct compare_impl;
@@ -727,25 +730,7 @@ namespace detail
     {
         using base = detail::tuple_impl <stl::index_sequence <0, 1>, T1, T2>;
 
-        /*
-         * These are helper methods for object-slicing references to our tuple
-         * into references to the tuple_impl.
-         */
-        static base & base_slice (tuple & t) noexcept
-        {
-            return static_cast <base &> (t);
-        }
-
-        static base const & base_slice (tuple const & t) noexcept
-        {
-            return static_cast <base const &> (t);
-        }
-
-        static base && base_slice (tuple && t) noexcept
-        {
-            return static_cast <base &&> (stl::move (t));
-        }
-
+        friend struct detail::base_access <tuple>;
         friend struct detail::get_impl <tuple>;
         friend struct detail::compare_impl;
 
@@ -823,7 +808,7 @@ namespace detail
             >::type
         >
         constexpr tuple (tuple <U1, U2> const & other)
-            : base (tuple <U1, U2>::base_slice (other))
+            : base (detail::base_access <tuple <U1, U2>>::slice (other))
         {}
 
         /*
@@ -842,7 +827,7 @@ namespace detail
             >::type
         >
         constexpr tuple (tuple <U1, U2> && other)
-            : base (tuple <U1, U2>::base_slice (stl::move (other)))
+            : base (detail::base_access <tuple <U1, U2>>::slice (stl::move (other)))
         {}
 
         /*
@@ -986,7 +971,8 @@ namespace detail
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple const & other)
-            : base (std::allocator_arg_t {}, alloc, base_slice (other))
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple>::slice (other))
         {}
 
         /*
@@ -1010,9 +996,8 @@ namespace detail
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple && other)
-            : base (std::allocator_arg_t {},
-                    alloc,
-                    base_slice (stl::move (other)))
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple>::slice (stl::move (other)))
         {}
 
         /*
@@ -1039,9 +1024,8 @@ namespace detail
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple <U1, U2> const & other)
-            : base (std::allocator_arg_t {},
-                    alloc,
-                    tuple <U1, U2>::base_slice (other))
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple <U1, U2>>::slice (other))
         {}
 
         /*
@@ -1064,9 +1048,8 @@ namespace detail
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple <U1, U2> && other)
-            : base (std::allocator_arg_t {},
-                    alloc,
-                    tuple <U1, U2>::base_slice (stl::move (other)))
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple <U1, U2>>::slice (stl::move (other)))
         {}
 
         /*
@@ -1136,7 +1119,7 @@ namespace detail
          */
         tuple & operator= (tuple const & other)
         {
-            base_slice (*this) = base_slice (other);
+            detail::base_access <tuple> (*this) = detail::base_access <tuple>::slice (other);
             return *this;
         }
 
@@ -1149,7 +1132,8 @@ namespace detail
                 stl::declval <base &> () = stl::declval <base &&> ()
             ))
         {
-            base_slice (*this) = base_slice (stl::move (other));
+            detail::base_access <tuple> (*this) =
+                detail::base_access <tuple> (stl::move (other));
             return *this;
         }
 
@@ -1169,7 +1153,8 @@ namespace detail
         >
         tuple & operator= (tuple <U1, U2> const & other)
         {
-            base_slice (*this) = tuple <U1, U2>::base_slice (other);
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple <U1, U2>>::slice (other);
             return *this;
         }
 
@@ -1189,7 +1174,8 @@ namespace detail
         >
         tuple & operator= (tuple <U1, U2> && other)
         {
-            base_slice (*this) = tuple <U1, U2>::base_slice (stl::move (other));
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple <U1, U2>>::slice (stl::move (other));
             return *this;
         }
 
@@ -1208,7 +1194,7 @@ namespace detail
         >
         tuple & operator= (pair <U1, U2> const & p)
         {
-            base_slice (*this) = p;
+            detail::base_access <tuple>::slice (*this) = p;
             return *this;
         }
 
@@ -1228,7 +1214,7 @@ namespace detail
         >
         tuple & operator= (pair <U1, U2> && p) noexcept
         {
-            base_slice (*this) = stl::move (p);
+            detail::base_access <tuple>::slice = stl::move (p);
             return *this;
         }
 
@@ -1241,7 +1227,9 @@ namespace detail
                 stl::declval <base &> ().swap (stl::declval <base &> ())
             ))
         {
-            base_slice (*this).swap (base_slice (other));
+            detail::base_access <tuple>::slice (*this).swap (
+                detail::base_access <tuple>::slice (other)
+            );
         }
     };
 
@@ -1265,25 +1253,7 @@ namespace detail
         >;
         using size = std::integral_constant <std::size_t, sizeof... (Ts)>;
 
-        /*
-         * These are helper methods for object-slicing references to our tuple
-         * into references to the tuple_impl.
-         */
-        static base & base_slice (tuple & t) noexcept
-        {
-            return static_cast <base &> (t);
-        }
-
-        static base const & base_slice (tuple const & t) noexcept
-        {
-            return static_cast <base const &> (t);
-        }
-
-        static base && base_slice (tuple && t) noexcept
-        {
-            return static_cast <base &&> (stl::move (t));
-        }
-
+        friend struct detail::base_access <tuple>;
         friend struct detail::get_impl <tuple>;
         friend struct detail::compare_impl;
 
@@ -1367,7 +1337,7 @@ namespace detail
             >::type
         >
         constexpr tuple (tuple <Us...> const & other)
-            : base (tuple <Us...>::base_slice (other))
+            : base (detail::base_access <tuple <Us...>>::slice (other))
         {}
 
         /*
@@ -1389,7 +1359,7 @@ namespace detail
             >::type
         >
         constexpr tuple (tuple <Us...> && other)
-            : base (tuple <Us...>::base_slice (stl::move (other)))
+            : base (detail::base_access <tuple <Us...>>::slice (stl::move (other)))
         {}
 
         /* Explicitly defaulted copy and move constructors. */
@@ -1485,7 +1455,8 @@ namespace detail
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple const & other)
-            : base (std::allocator_arg_t {}, alloc, base_slice (other))
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple>::slice (other))
         {}
 
         /*
@@ -1511,9 +1482,8 @@ namespace detail
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple && other)
-            : base (std::allocator_arg_t {},
-                    alloc,
-                    base_slice (stl::move (other)))
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple>::slice (stl::move (other)))
         {}
 
         /*
@@ -1540,9 +1510,8 @@ namespace detail
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple <Us...> const & other)
-            : base (std::allocator_arg_t {},
-                    alloc,
-                    tuple <Us...>::base_slice (other))
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple <Us...>>::slice (other))
         {}
 
         /*
@@ -1569,9 +1538,8 @@ namespace detail
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple <Us...> && other)
-            : base (std::allocator_arg_t {},
-                    alloc,
-                    tuple <Us...>::base_slice (stl::move (other)))
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple <Us...>>::slice (stl::move (other)))
         {}
 
         /*
@@ -1580,7 +1548,8 @@ namespace detail
          */
         tuple & operator= (tuple const & other)
         {
-            base_slice (*this) = base_slice (other);
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple>::slice (other);
             return *this;
         }
 
@@ -1593,7 +1562,8 @@ namespace detail
                 stl::declval <base &> () = stl::declval <base &&> ()
             ))
         {
-            base_slice (*this) = base_slice (stl::move (other));
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple>::slice (stl::move (other));
             return *this;
         }
 
@@ -1615,7 +1585,8 @@ namespace detail
         >
         tuple & operator= (tuple <Us...> const & other)
         {
-            base_slice (*this) = tuple <Us...>::base_slice (other);
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple <Us...>>::slice (other);
             return *this;
         }
 
@@ -1637,7 +1608,8 @@ namespace detail
         >
         tuple & operator= (tuple <Us...> && other)
         {
-            base_slice (*this) = tuple <Us...>::base_slice (stl::move (other));
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple <Us...>>::slice (stl::move (other));
             return *this;
         }
 
@@ -1650,7 +1622,9 @@ namespace detail
                 stl::declval <base &> ().swap (stl::declval <base &> ())
             ))
         {
-            base_slice (*this).swap (base_slice (other));
+            detail::base_access <tuple>::slice (*this).swap (
+                detail::base_access <tuple>::slice (other)
+            );
         }
     };
 
@@ -1851,6 +1825,31 @@ namespace detail
 namespace detail
 {
     template <class ... Ts>
+    struct base_access <tuple <Ts...>>
+    {
+        using base = typename tuple <Ts...>::base;
+
+        /*
+         * These are helper methods for object-slicing references to our tuple
+         * into references to the tuple_impl.
+         */
+        static base & slice (tuple <Ts...> & t) noexcept
+        {
+            return static_cast <base &> (t);
+        }
+
+        static base const & slice (tuple <Ts...> const & t) noexcept
+        {
+            return static_cast <base const &> (t);
+        }
+
+        static base && slice (tuple <Ts...> && t) noexcept
+        {
+            return static_cast <base &&> (stl::move (t));
+        }
+    };
+
+    template <class ... Ts>
     struct get_impl <tuple <Ts...>>
     {
         template <std::size_t I>
@@ -2001,7 +2000,8 @@ namespace detail
             using lhs_tuple = tuple <Ts...>;
             using rhs_tuple = tuple <Ts...>;
 
-            return lhs_tuple::base_slice (lhs) == rhs_tuple::base_slice (rhs);
+            return detail::base_access <lhs_tuple>::slice (lhs) ==
+                detail::base_access <rhs_tuple>::slice (rhs);
         }
 
         template <class ... Ts, class ... Us>
@@ -2011,7 +2011,8 @@ namespace detail
             using lhs_tuple = tuple <Ts...>;
             using rhs_tuple = tuple <Ts...>;
 
-            return lhs_tuple::base_slice (lhs) < rhs_tuple::base_slice (rhs);
+            return detail::base_access <lhs_tuple>::slice (lhs) <
+                detail::base_access <rhs_tuple>::slice (rhs);
         }
     };
 }   // namespace detail
