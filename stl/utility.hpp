@@ -317,12 +317,14 @@ namespace rel_ops
          * convertible to T2, which is why we use the defaulted third parameter
          * enable_if expression.
          */
-        template <class U1, class U2>
-        constexpr pair (U1 && u1, U2 && u2,
-                        typename std::enable_if <
-                            std::is_convertible <U1, T1>::value &&
-                            std::is_convertible <U2, T2>::value
-                        >::type * = nullptr)
+        template <
+            class U1, class U2,
+            typename std::enable_if <
+                std::is_convertible <U1, T1>::value &&
+                std::is_convertible <U2, T2>::value
+            >::type
+        >
+        constexpr pair (U1 && u1, U2 && u2)
             : first  (stl::forward <U1> (u1))
             , second (stl::forward <U2> (u2))
         {}
