@@ -1784,6 +1784,10 @@ namespace detail
     };
 }   // namespace detail
 
+    /*
+     * While we're at it, we can also implement the C++17 rvalue reference to
+     * const overload for index and type based get.
+     */
     template <std::size_t I, class ... Ts>
     constexpr typename stl::tuple_element <I, tuple <Ts...>>::type &
         get (tuple <Ts...> & t) noexcept
@@ -1807,10 +1811,6 @@ namespace detail
         );
     }
 
-    /*
-     * While we're at it, we can also implement the C++17 rvalue reference to
-     * const overload for index-based get.
-     */
     template <std::size_t I, class ... Ts>
     constexpr typename stl::tuple_element <I, tuple <Ts...>>::type const &&
         get (tuple <Ts...> const && t) noexcept
@@ -1868,10 +1868,6 @@ namespace detail
         return get <index::value> (stl::move (t));
     }
 
-    /*
-     * While we're at it, we can also implement the C++17 rvalue reference to
-     * const overload for type-based get.
-     */
     template <class S, class ... Ts>
     constexpr S const && get (tuple <Ts...> const && t) noexcept
     {
