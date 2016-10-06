@@ -1724,6 +1724,11 @@ namespace detail
         {
             return static_cast <base &&> (stl::move (t));
         }
+
+        static base const && slice (tuple <Ts...> const && t) noexcept
+        {
+            return static_cast <base const &&> (stl::move (t));
+        }
     };
 
     template <class ... Ts>
@@ -1762,6 +1767,20 @@ namespace detail
 
             return stl::forward <type &&> (static_cast <node &> (t).member);
         }
+
+        template <std::size_t I>
+        static constexpr
+        typename stl::tuple_element <I, tuple <Ts...>>::type const &&
+            do_get (tuple <Ts...> const && t) noexcept
+        {
+            using tup  = tuple <Ts...>;
+            using type = typename stl::tuple_element <I, tup>::type;
+            using node = typename tup::base::template type_node <I, type>;
+
+            return stl::forward <type const &&> (
+                static_cast <node const &> (t).member
+            );
+        }
     };
 }   // namespace detail
 
@@ -1782,6 +1801,19 @@ namespace detail
     template <std::size_t I, class ... Ts>
     constexpr typename stl::tuple_element <I, tuple <Ts...>>::type &&
         get (tuple <Ts...> && t) noexcept
+    {
+        return detail::get_impl <tuple <Ts...>>::template do_get <I> (
+            stl::move (t)
+        );
+    }
+
+    /*
+     * While we're at it, we can also implement the C++17 rvalue reference to
+     * const overload for index-based get.
+     */
+    template <std::size_t I, class ... Ts>
+    constexpr typename stl::tuple_element <I, tuple <Ts...>>::type const &&
+        get (tuple <Ts...> const && t) noexcept
     {
         return detail::get_impl <tuple <Ts...>>::template do_get <I> (
             stl::move (t)
@@ -1824,6 +1856,24 @@ namespace detail
 
     template <class S, class ... Ts>
     constexpr S && get (tuple <Ts...> && t) noexcept
+    {
+        static_assert (sizeof... (Ts) != 0, "cannot extract from empty tuple");
+
+        using index        = bits::type_index <S, Ts...>;
+        using multiplicity = bits::type_multiplicity <S, Ts...>;
+        static_assert (
+            multiplicity::value == 1, "cannot extract repeated element type"
+        );
+
+        return get <index::value> (stl::move (t));
+    }
+
+    /*
+     * While we're at it, we can also implement the C++17 rvalue reference to
+     * const overload for type-based get.
+     */
+    template <class S, class ... Ts>
+    constexpr S const && get (tuple <Ts...> const && t) noexcept
     {
         static_assert (sizeof... (Ts) != 0, "cannot extract from empty tuple");
 
