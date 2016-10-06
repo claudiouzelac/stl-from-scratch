@@ -376,7 +376,7 @@ namespace rel_ops
         pair (piecewise_construct_t, tuple <Args1...>, tuple <Args2...>);
 
         /* we can default this and let the compiler generate the destructor */
-        ~pair (void) noexcept = default;
+        ~pair (void) = default;
 
         /*
          * As per the specification, the copy and move constructors of pair are
