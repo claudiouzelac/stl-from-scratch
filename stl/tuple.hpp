@@ -1131,7 +1131,7 @@ namespace detail
          */
         tuple & operator= (tuple const & other)
         {
-            detail::base_access <tuple> (*this) =
+            detail::base_access <tuple>::slice (*this) =
                 detail::base_access <tuple>::slice (other);
             return *this;
         }
@@ -1145,8 +1145,8 @@ namespace detail
                 stl::declval <base &> () = stl::declval <base &&> ()
             ))
         {
-            detail::base_access <tuple> (*this) =
-                detail::base_access <tuple> (stl::move (other));
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple>::slice (stl::move (other));
             return *this;
         }
 
