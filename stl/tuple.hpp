@@ -89,7 +89,8 @@ namespace detail
             : member ()
         {}
 
-        ~type_node (void) noexcept = default;
+        ~type_node (void) noexcept (std::is_nothrow_destructible <T>::value)
+            = default;
 
         explicit constexpr
         type_node (member_type const & m)
@@ -265,7 +266,11 @@ namespace detail
          * default constructible.
          */
         constexpr tuple_impl (void) : type_node <I, Ts> ()... {}
-        ~tuple_impl (void) noexcept = default;
+        ~tuple_impl (void)
+            noexcept (
+                bits::predicate_and <std::is_nothrow_destructible, Ts...>::value
+            )
+            = default;
 
         /*
          * Copy construction of each node from values inhabiting the full list
@@ -767,6 +772,9 @@ namespace detail
         constexpr tuple (void) : base ()
         {}
 
+        ~tuple (void) noexcept (std::is_nothrow_destructible <base>::value)
+            = default;
+
         /*
          * Copy construction of each node from values inhabiting the full list
          * of template types.
@@ -827,7 +835,9 @@ namespace detail
             >::type
         >
         constexpr tuple (tuple <U1, U2> && other)
-            : base (detail::base_access <tuple <U1, U2>>::slice (stl::move (other)))
+            : base (
+                detail::base_access <tuple <U1, U2>>::slice (stl::move (other))
+            )
         {}
 
         /*
@@ -1048,8 +1058,10 @@ namespace detail
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple <U1, U2> && other)
-            : base (std::allocator_arg_t {}, alloc,
-                    detail::base_access <tuple <U1, U2>>::slice (stl::move (other)))
+            : base (
+                std::allocator_arg_t {}, alloc,
+                detail::base_access <tuple <U1, U2>>::slice (stl::move (other))
+            )
         {}
 
         /*
@@ -1119,7 +1131,8 @@ namespace detail
          */
         tuple & operator= (tuple const & other)
         {
-            detail::base_access <tuple> (*this) = detail::base_access <tuple>::slice (other);
+            detail::base_access <tuple> (*this) =
+                detail::base_access <tuple>::slice (other);
             return *this;
         }
 
