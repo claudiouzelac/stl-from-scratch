@@ -1372,7 +1372,9 @@ namespace detail
             >::type
         >
         constexpr tuple (tuple <Us...> && other)
-            : base (detail::base_access <tuple <Us...>>::slice (stl::move (other)))
+            : base (
+                detail::base_access <tuple <Us...>>::slice (stl::move (other))
+            )
         {}
 
         /* Explicitly defaulted copy and move constructors. */
@@ -1551,8 +1553,10 @@ namespace detail
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple <Us...> && other)
-            : base (std::allocator_arg_t {}, alloc,
-                    detail::base_access <tuple <Us...>>::slice (stl::move (other)))
+            : base (
+                std::allocator_arg_t {}, alloc,
+                detail::base_access <tuple <Us...>>::slice (stl::move (other))
+            )
         {}
 
         /*
@@ -1687,146 +1691,6 @@ namespace detail
     constexpr tuple <Ts &&...> forward_as_tuple (Ts && ... ts) noexcept
     {
         return tuple <Ts &&...> (stl::forward <Ts> (ts)...);
-    }
-
-namespace detail
-{
-    template <class ... Tup>
-    struct concat_type;
-
-    template <>
-    struct concat_type <>
-    {
-        using type = tuple <>;
-    };
-
-    template <class Tup>
-    struct concat_type <Tup>
-    {
-        using type = typename std::decay <Tup>::type;
-    };
-
-    template <class ... As, class ... Bs, class ... Tups>
-    struct concat_type <tuple <As...>, tuple <Bs...>, Tups...>
-    {
-        using type = typename concat_type <
-            tuple <As..., Bs...>, Tups...
-        >::type;
-    };
-
-    template <std::size_t N>
-    struct tuple_cat_helper;
-
-    template <>
-    struct tuple_cat_helper <0>
-    {
-        static constexpr tuple <> dispatch (void) noexcept
-        {
-            return tuple <> ();
-        }
-    };
-
-    template <>
-    struct tuple_cat_helper <1>
-    {
-        template <class Tuple>
-        static constexpr typename std::decay <Tuple>::type
-            dispatch (Tuple && t) noexcept
-        {
-            return std::decay <Tuple>::type (stl::forward <Tuple> (t));
-        }
-    };
-
-    template <>
-    struct tuple_cat_helper <2>
-    {
-        template <
-            std::size_t ... I1, std::size_t ... I2, class Tuple1, class Tuple2
-        >
-        static constexpr typename concat_type <Tuple1, Tuple2>::type
-            concat (stl::index_sequence <I1...>,
-                    stl::index_sequence <I2...>,
-                    Tuple1 && t1,
-                    Tuple2 && t2) noexcept
-        {
-            using result = typename concat_type <Tuple1, Tuple2>::type;
-            return result (
-                stl::get <I1> (stl::forward <Tuple1> (t1))...,
-                stl::get <I2> (stl::forward <Tuple2> (t2))...
-            );
-        }
-
-        template <class Tuple1, class Tuple2>
-        static constexpr typename concat_type <Tuple1, Tuple2>::type
-            dispatch (Tuple1 && t1, Tuple2 && t2) noexcept
-        {
-            using size1 = stl::tuple_size <Tuple1>;
-            using size2 = stl::tuple_size <Tuple2>;
-            return concat (
-                stl::make_index_sequence <size1::value> {},
-                stl::make_index_sequence <size2::value> {},
-                stl::forward <Tuple1> (t1),
-                stl::forward <Tuple2> (t2)
-            );
-        }
-    };
-
-    /*
-     * Because of the above specializations we know that N >= 3, which ensures
-     * correctness of the concat implementation.
-     */
-    template <std::size_t N>
-    struct tuple_cat_helper
-    {
-        template <
-            std::size_t ... I1, std::size_t ... I2,
-            class Tuple1, class Tuple2, class ... Tuples
-        >
-        static constexpr typename concat_type <Tuple1, Tuple2, Tuples...>::type
-            concat (stl::index_sequence <I1...>,
-                    stl::index_sequence <I2...>,
-                    Tuple1 && t1, Tuple2 && t2,
-                    Tuples && ... ts)
-        {
-            using partial = typename concat_type <Tuple1, Tuple2>::type;
-            return tuple_cat_helper <2>::dispatch (
-                partial (get <I1> (stl::forward <Tuple1> (t1))...,
-                         get <I2> (stl::forward <Tuple2> (t2))...),
-                tuple_cat_helper <N - 2>::dispatch (
-                    stl::forward <Tuples> (ts)...
-                )
-            );
-        }
-
-        template <class Tuple1, class Tuple2, class ... Tuples>
-        static constexpr typename concat_type <Tuple1, Tuple2, Tuples...>::type
-            dispatch (Tuple1 && t1, Tuple2 && t2, Tuples && ... ts) noexcept
-        {
-            using size1 = stl::tuple_size <Tuple1>;
-            using size2 = stl::tuple_size <Tuple2>;
-            return concat (
-                stl::make_index_sequence <size1::value> {},
-                stl::make_index_sequence <size2::value> {},
-                stl::forward <Tuple1> (t1),
-                stl::forward <Tuple2> (t2),
-                stl::forward <Tuples> (ts)...
-            );
-        }
-    };
-}
-    /*
-     * Concatenates one or more tuples with member objects ordered by the
-     * appearance in which their original tuples appeared as parameters.
-     *
-     * We use the C++14 signature.
-     */
-    template <class ... Tuples>
-    constexpr typename detail::concat_type <Tuples...>::type
-        tuple_cat (Tuples && ... tuples)
-    {
-        return detail::tuple_cat_helper <sizeof... (Tuples)>::dispatch (
-            stl::forward <Tuples> (tuples)...
-        );
     }
 
     /*
@@ -1970,6 +1834,168 @@ namespace detail
         );
 
         return get <index::value> (stl::move (t));
+    }
+
+namespace detail
+{
+    template <class ... Tup>
+    struct concat_type;
+
+    template <>
+    struct concat_type <>
+    {
+        using type = tuple <>;
+    };
+
+    template <class Tup>
+    struct concat_type <Tup>
+    {
+        using type = typename std::decay <Tup>::type;
+    };
+
+    template <class ... As, class ... Bs, class ... Tups>
+    struct concat_type <tuple <As...>, tuple <Bs...>, Tups...>
+    {
+        using type = typename concat_type <
+            tuple <As..., Bs...>, Tups...
+        >::type;
+    };
+
+    template <std::size_t N>
+    struct tuple_cat_helper;
+
+    template <>
+    struct tuple_cat_helper <0>
+    {
+        static constexpr tuple <> dispatch (void) noexcept
+        {
+            return tuple <> ();
+        }
+    };
+
+    template <>
+    struct tuple_cat_helper <1>
+    {
+        template <class Tuple>
+        static constexpr typename std::decay <Tuple>::type
+            dispatch (Tuple && t) noexcept
+        {
+            return typename std::decay <Tuple>::type (stl::forward <Tuple> (t));
+        }
+    };
+
+    template <>
+    struct tuple_cat_helper <2>
+    {
+        template <
+            std::size_t ... I1, std::size_t ... I2, class Tuple1, class Tuple2
+        >
+        static constexpr typename concat_type <
+            typename std::decay <Tuple1>::type,
+            typename std::decay <Tuple2>::type
+        >::type
+            concat (stl::index_sequence <I1...>,
+                    stl::index_sequence <I2...>,
+                    Tuple1 && t1,
+                    Tuple2 && t2) noexcept
+        {
+            using result = typename concat_type <
+                typename std::decay <Tuple1>::type,
+                typename std::decay <Tuple2>::type
+            >::type;
+            return result (
+                stl::get <I1> (stl::forward <Tuple1> (t1))...,
+                stl::get <I2> (stl::forward <Tuple2> (t2))...
+            );
+        }
+
+        template <class Tuple1, class Tuple2>
+        static constexpr typename concat_type <
+            typename std::decay <Tuple1>::type,
+            typename std::decay <Tuple2>::type
+        >::type
+            dispatch (Tuple1 && t1, Tuple2 && t2) noexcept
+        {
+            using size1 = stl::tuple_size <typename std::decay <Tuple1>::type>;
+            using size2 = stl::tuple_size <typename std::decay <Tuple2>::type>;
+            return concat (
+                stl::make_index_sequence <size1::value> {},
+                stl::make_index_sequence <size2::value> {},
+                stl::forward <Tuple1> (t1),
+                stl::forward <Tuple2> (t2)
+            );
+        }
+    };
+
+    /*
+     * Because of the above specializations we know that N >= 3, which ensures
+     * correctness of the concat implementation.
+     */
+    template <std::size_t N>
+    struct tuple_cat_helper
+    {
+        template <
+            std::size_t ... I1, std::size_t ... I2,
+            class Tuple1, class Tuple2, class ... Tuples
+        >
+        static constexpr typename concat_type <
+            typename std::decay <Tuple1>::type,
+            typename std::decay <Tuple2>::type,
+            typename std::decay <Tuples>::type...
+        >::type
+            concat (stl::index_sequence <I1...>,
+                    stl::index_sequence <I2...>,
+                    Tuple1 && t1, Tuple2 && t2,
+                    Tuples && ... ts)
+        {
+            using partial = typename concat_type <
+                typename std::decay <Tuple1>::type,
+                typename std::decay <Tuple2>::type
+            >::type;
+            return tuple_cat_helper <2>::dispatch (
+                partial (get <I1> (stl::forward <Tuple1> (t1))...,
+                         get <I2> (stl::forward <Tuple2> (t2))...),
+                tuple_cat_helper <N - 2>::dispatch (
+                    stl::forward <Tuples> (ts)...
+                )
+            );
+        }
+
+        template <class Tuple1, class Tuple2, class ... Tuples>
+        static constexpr typename concat_type <
+            typename std::decay <Tuple1>::type,
+            typename std::decay <Tuple2>::type,
+            typename std::decay <Tuples>::type...
+        >::type
+            dispatch (Tuple1 && t1, Tuple2 && t2, Tuples && ... ts) noexcept
+        {
+            using size1 = stl::tuple_size <typename std::decay <Tuple1>::type>;
+            using size2 = stl::tuple_size <typename std::decay <Tuple2>::type>;
+            return concat (
+                stl::make_index_sequence <size1::value> {},
+                stl::make_index_sequence <size2::value> {},
+                stl::forward <Tuple1> (t1),
+                stl::forward <Tuple2> (t2),
+                stl::forward <Tuples> (ts)...
+            );
+        }
+    };
+}
+    /*
+     * Concatenates one or more tuples with member objects ordered by the
+     * appearance in which their original tuples appeared as parameters.
+     *
+     * We use the C++14 signature.
+     */
+    template <class ... Tuples>
+    constexpr typename detail::concat_type <
+        typename std::decay <Tuples>::type...
+    >::type
+        tuple_cat (Tuples && ... tuples)
+    {
+        return detail::tuple_cat_helper <sizeof... (Tuples)>::dispatch (
+            stl::forward <Tuples> (tuples)...
+        );
     }
 
     /*
