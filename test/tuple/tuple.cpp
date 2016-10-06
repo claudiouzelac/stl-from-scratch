@@ -36,6 +36,7 @@
 
 #include <cassert>
 #include <memory>
+#include <string>
 #include <type_traits>
 #include <vector>
 #include <stl/tuple.hpp>
@@ -340,5 +341,73 @@ int main (void)
         assert (a == 1);
         assert (b == 2.0);
         assert (c.x == 3);
+    }
+
+    /* does tuple_cat work as expected? */
+    {
+        stl::tuple <char, unsigned char>   a {-1, 1};
+        stl::tuple <short, unsigned short> b {-2, 2};
+        stl::tuple <std::string, std::vector <int>> c {"test", {1, 2, 3}};
+
+        auto empty = stl::tuple_cat ();
+        auto a2    = stl::tuple_cat (a);
+        auto ab    = stl::tuple_cat (a, b);
+        auto ac    = stl::tuple_cat (a, c);
+        auto abc   = stl::tuple_cat (a, b, c);
+
+        /* are the types correct? */
+        using ab_type = stl::tuple <char, unsigned char, short, unsigned short>;
+        using ac_type = stl::tuple <
+            char, unsigned char, std::string, std::vector <int>
+        >;
+        using abc_type = stl::tuple <
+            char, unsigned char, short, unsigned short, std::string, std::vector <int>
+        >;
+
+        static_assert (
+            std::is_same <decltype(empty), stl::tuple <>>::value,
+            "expected empty tuple"
+        );
+        static_assert (
+            std::is_same <decltype(a2), decltype (a)>::value,
+            "wrong type for tuple_cat (1-arg) result"
+        );
+        static_assert (
+            std::is_same <decltype (ab), ab_type>::value,
+            "wrong type for tuple_cat (2-arg) result"
+        );
+        static_assert (
+            std::is_same <decltype (ac), ac_type>::value,
+            "wrong type for tuple_cat (2-arg) result"
+        );
+        static_assert (
+            std::is_same <decltype (abc), abc_type>::value,
+            "wrong type for tuple_cat (3-arg) result"
+        );
+
+        /* are the values correct? */
+        assert (stl::get <0> (a2) == -1);
+        assert (stl::get <1> (a2) == 1);
+
+        assert (stl::get <0> (ab) == -1);
+        assert (stl::get <1> (ab) == 1);
+        assert (stl::get <2> (ab) == -2);
+        assert (stl::get <3> (ab) == 2);
+
+        assert (stl::get <0> (ac) == -1);
+        assert (stl::get <1> (ac) == 1);
+        assert (stl::get <2> (ac) == "test");
+        assert (stl::get <3> (ac) [0] == 1);
+        assert (stl::get <3> (ac) [1] == 2);
+        assert (stl::get <3> (ac) [2] == 3);
+
+        assert (stl::get <0> (abc) == -1);
+        assert (stl::get <1> (abc) == 1);
+        assert (stl::get <2> (abc) == -2);
+        assert (stl::get <3> (abc) == 2);
+        assert (stl::get <4> (abc) == "test");
+        assert (stl::get <5> (abc) [0] == 1);
+        assert (stl::get <5> (abc) [1] == 2);
+        assert (stl::get <5> (abc) [2] == 3);
     }
 }
