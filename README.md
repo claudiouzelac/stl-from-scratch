@@ -10,12 +10,10 @@ introductory post).
 The plan for the project is to follow this timeline:
 
 * Chapter 0 - utilities and iterators
-    - utilities and integer sequences
-    - pairs and tuples
-    - reference wrappers
-    - function objects
-    - iterators and range/container access
-    - iterator operations and adaptors
+    - [utilities and integer sequences][2]
+    - pairs and tuples ([part 1][3], [part 2][4])
+    - reference wrappers and function objects
+    - iterators, iterator operations, and range/container access
 
 * Chapter 1 - algorithms
     - minimums, maximums, and permutations
@@ -54,6 +52,7 @@ The plan for the project is to follow this timeline:
 
 * Chapter 4 - future STL components
     - motivation for more expressive types
+    - memory and uninitialized storage utilities
     - optional
     - variant
     - any
@@ -69,6 +68,9 @@ The plan for the project is to follow this timeline:
     - async, tasks, and futures
 
 [1]: http://voidae.com/blog/2016/9/28/stl-from-scratch-introduction
+[2]: http://voidae.com/blog/2016/9/29/stl-from-scratch-chapter-0-utilities-and-integer-sequences
+[3]: http://voidae.com/blog/2016/10/5/stl-from-scratch-pairs-and-tuples-part-1
+[4]: http://voidae.com/blog/2016/10/6/stl-from-scratch-pairs-and-tuples-part-2
 
 info
 ----
