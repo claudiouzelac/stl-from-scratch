@@ -317,12 +317,14 @@ namespace rel_ops
          * convertible to T2, which is why we use the defaulted third parameter
          * enable_if expression.
          */
-        template <class U1, class U2>
-        constexpr pair (U1 && u1, U2 && u2,
-                        typename std::enable_if <
-                            std::is_convertible <U1, T1>::value &&
-                            std::is_convertible <U2, T2>::value
-                        >::type * = nullptr)
+        template <
+            class U1, class U2,
+            typename std::enable_if <
+                std::is_convertible <U1, T1>::value &&
+                std::is_convertible <U2, T2>::value
+            >::type
+        >
+        constexpr pair (U1 && u1, U2 && u2)
             : first  (stl::forward <U1> (u1))
             , second (stl::forward <U2> (u2))
         {}
@@ -374,7 +376,7 @@ namespace rel_ops
         pair (piecewise_construct_t, tuple <Args1...>, tuple <Args2...>);
 
         /* we can default this and let the compiler generate the destructor */
-        ~pair (void) noexcept = default;
+        ~pair (void) = default;
 
         /*
          * As per the specification, the copy and move constructors of pair are
@@ -582,10 +584,27 @@ namespace detail
     {
         return stl::move (p.second);
     }
+
+    template <class T1, class T2>
+    constexpr T1 const && get_helper (pair <T1, T2> const && p,
+                                      bits::index_tag <0>) noexcept
+    {
+        return stl::move (p.first);
+    }
+
+    template <class T1, class T2>
+    constexpr T2 const && get_helper (pair <T1, T2> const && p,
+                                      bits::index_tag <1>) noexcept
+    {
+        return stl::move (p.second);
+    }
 }   // namespace detail
 
     /*
      * For type based versions of get, the types T1 and T2 cannot be the same.
+     *
+     * While we're at it, we can also implement the C++17 rvalue reference to
+     * const overload for index and type based get.
      */
     template <std::size_t I, class T1, class T2>
     constexpr typename tuple_element <I, pair <T1, T2>>::type &
@@ -604,6 +623,13 @@ namespace detail
     template <std::size_t I, class T1, class T2>
     constexpr typename tuple_element <I, pair <T1, T2>>::type &&
         get (pair <T1, T2> && p) noexcept
+    {
+        return detail::get_helper (stl::move (p), bits::index_tag <I> {});
+    }
+
+    template <std::size_t I, class T1, class T2>
+    constexpr typename tuple_element <I, pair <T1, T2>>::type const &&
+        get (pair <T1, T2> const && p) noexcept
     {
         return detail::get_helper (stl::move (p), bits::index_tag <I> {});
     }
@@ -627,6 +653,12 @@ namespace detail
     }
 
     template <class T, class U>
+    constexpr T const && get (pair <T, U> const && p) noexcept
+    {
+        return stl::move (p.first);
+    }
+
+    template <class T, class U>
     constexpr T & get (pair <U, T> & p) noexcept
     {
         return p.second;
@@ -640,6 +672,12 @@ namespace detail
 
     template <class T, class U>
     constexpr T && get (pair <U, T> && p) noexcept
+    {
+        return stl::move (p.second);
+    }
+
+    template <class T, class U>
+    constexpr T const && get (pair <U, T> const && p) noexcept
     {
         return stl::move (p.second);
     }

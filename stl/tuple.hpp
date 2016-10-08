@@ -30,8 +30,8 @@
 // SOFTWARE.
 //
 
-#ifndef STL_FROM_SCRATCH_TUPlE_HEADER
-#define STL_FROM_SCRATCH_TUPlE_HEADER
+#ifndef STL_FROM_SCRATCH_TUPLE_HEADER
+#define STL_FROM_SCRATCH_TUPLE_HEADER
 
 /*
  * memory defines std::allocator_arg_t for tuple constructor selection and
@@ -89,42 +89,27 @@ namespace detail
             : member ()
         {}
 
-        ~type_node (void) noexcept = default;
+        ~type_node (void) noexcept (std::is_nothrow_destructible <T>::value)
+            = default;
 
         explicit constexpr
-        type_node (member_type const & m,
-                   typename std::enable_if <
-                        std::is_copy_constructible <member_type>::value, void
-                   >::type * = nullptr)
+        type_node (member_type const & m)
             : member (m)
         {}
 
         template <class U>
         explicit constexpr
-        type_node (U && u,
-                   typename std::enable_if <
-                        std::is_constructible <member_type, U &&>::value, void
-                   >::type * = nullptr)
+        type_node (U && u)
             : member (stl::forward <U> (u))
         {}
 
         template <class U>
-        constexpr type_node (type_node <I, U> const & node,
-                             typename std::enable_if <
-                                std::is_constructible <
-                                    member_type, U const &
-                                >::value, void
-                             >::type * = nullptr)
+        constexpr type_node (type_node <I, U> const & node)
             : member (node.member)
         {}
 
         template <class U>
-        constexpr type_node (type_node <I, U> && node,
-                             typename std::enable_if <
-                                std::is_constructible <
-                                    member_type, U &&
-                                >::value, void
-                             >::type * = nullptr)
+        constexpr type_node (type_node <I, U> && node)
             : member (stl::forward <U> (node.member))
         {}
 
@@ -136,15 +121,16 @@ namespace detail
          * Constructors for uses-allocator construction. There are two of each
          * in order to faciliate ease of use in calling these constructors; one
          * taking a bits::uses_allocator_tag <true> arguent, and the other
-         * taking a bits::uses_allocator_tag <false> argument.
+         * taking a bits::uses_allocator_tag <false> argument, indicating,
+         * respectively, that they member object is to be constructed with or
+         * without the given allocator.
+         *
+         * Since the tuple class checks for constructibility of the member
+         * objects with or without the allocator we need not perform any
+         * checks here.
          */
         template <class Allocator>
-        type_node (bits::uses_allocator_tag <true>, Allocator const & alloc,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type, Allocator const &
-                        >::value, void
-                   >::type * = nullptr)
+        type_node (bits::uses_allocator_tag <true>, Allocator const & alloc)
             : member (alloc)
         {}
 
@@ -156,150 +142,84 @@ namespace detail
         template <class Allocator>
         type_node (bits::uses_allocator_tag <true>,
                    Allocator const & alloc,
-                   member_type const & m,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type,
-                            member_type const &,
-                            Allocator const &
-                        >::value, void
-                   >::type * = nullptr)
+                   member_type const & m)
             : member (m, alloc)
         {}
 
         template <class Allocator>
         type_node (bits::uses_allocator_tag <false>,
                    Allocator const &,
-                   member_type const & m,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type, member_type const &
-                        >::value, void
-                   >::type * = nullptr)
+                   member_type const & m)
             : member (m)
         {}
 
         template <class Allocator>
         type_node (bits::uses_allocator_tag <true>,
                    Allocator const & alloc,
-                   type_node const & node,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type,
-                            member_type const &,
-                            Allocator const &
-                        >::value, void
-                   >::type * = nullptr)
+                   type_node const & node)
             : member (node.member, alloc)
         {}
 
         template <class Allocator>
         type_node (bits::uses_allocator_tag <false>,
                    Allocator const &,
-                   type_node const & node,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type, member_type const &
-                        >::value, void
-                   >::type * = nullptr)
+                   type_node const & node)
             : member (node.member)
         {}
 
         template <class Allocator>
         type_node (bits::uses_allocator_tag <true>,
                    Allocator const & alloc,
-                   type_node && node,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type,
-                            member_type &&,
-                            Allocator const &
-                        >::value, void
-                   >::type * = nullptr)
+                   type_node && node)
             : member (stl::move (node.member), alloc)
         {}
 
         template <class Allocator>
         type_node (bits::uses_allocator_tag <false>,
                    Allocator const &,
-                   type_node && node,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type, member_type &&
-                        >::value, void
-                   >::type * = nullptr)
+                   type_node && node)
             : member (stl::move (node.member))
         {}
 
         template <class Allocator, class U>
         type_node (bits::uses_allocator_tag <true>,
                    Allocator const & alloc,
-                   U && u,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type, U &&, Allocator const &
-                         >::value, void
-                   >::type * = nullptr)
+                   U && u)
             : member (stl::forward <U> (u), alloc)
         {}
 
         template <class Allocator, class U>
         type_node (bits::uses_allocator_tag <false>,
                    Allocator const &,
-                   U && u,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type, U &&
-                        >::value, void
-                   >::type * = nullptr)
+                   U && u)
             : member (stl::forward <U> (u))
         {}
 
         template <class Allocator, class U>
         type_node (bits::uses_allocator_tag <true>,
                    Allocator const & alloc,
-                   type_node <I, U> const & node,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type, U const &, Allocator const &
-                        >::value, void
-                   >::type * = nullptr)
+                   type_node <I, U> const & node)
             : member (node.member, alloc)
         {}
 
         template <class Allocator, class U>
         type_node (bits::uses_allocator_tag <false>,
                    Allocator const &,
-                   type_node <I, U> const & node,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type, U const &
-                        >::value, void
-                    >::type * = nullptr)
+                   type_node <I, U> const & node)
             : member (node.member)
         {}
 
         template <class Allocator, class U>
         type_node (bits::uses_allocator_tag <true>,
                    Allocator const & alloc,
-                   type_node <I, U> && node,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type, U &&, Allocator const &
-                        >::value, void
-                    >::type * = nullptr)
+                   type_node <I, U> && node)
             : member (stl::forward <U> (node.member), alloc)
         {}
 
         template <class Allocator, class U>
         type_node (bits::uses_allocator_tag <false>,
                    Allocator const &,
-                   type_node <I, U> && node,
-                   typename std::enable_if <
-                        std::is_constructible <
-                            member_type, U &&
-                        >::value, void
-                   >::type * = nullptr)
+                   type_node <I, U> && node)
             : member (stl::forward <U> (node.member))
         {}
     };
@@ -311,8 +231,8 @@ namespace detail
      * This is our implementation of the inheritence for tuples. Instead of an
      * inheritence hierarchy we'll implement tuples with a single multiple
      * inheritence list. This is not only a fun application of multiple
-     * inheritence, it is also a fun application of parameter pack expansion,
-     * and in more ways than one. First, we can use it to construct a multiple-
+     * inheritence, it is also a fun application of parameter pack expansion
+     * (and in more ways than one). First, we can use it to construct a multiple
      * inheritence list for the type nodes. Second, we can use parameter pack
      * expansion to create delegating constructor lists to each type node.
      *
@@ -346,19 +266,15 @@ namespace detail
          * default constructible.
          */
         constexpr tuple_impl (void) : type_node <I, Ts> ()... {}
-        ~tuple_impl (void) noexcept = default;
+        ~tuple_impl (void)
+            noexcept (
+                bits::predicate_and <std::is_nothrow_destructible, Ts...>::value
+            )
+            = default;
 
         /*
          * Copy construction of each node from values inhabiting the full list
-         * of template types. sizeof... (Ts) must be at least 1, and
-         * is_copy_constructible must be true for each of Ts... These
-         * requirements are met and handled, respectively, by the empty tuple
-         * specialization above and the constructors of each tuple_node.
-         *
-         * We have to do a little leg work here to ensure that each level of
-         * the inheritence heirarchy is constructed with the appropriate type,
-         * which is why we forward to the private constructor that correctly
-         * selects the types from which to construct each base.
+         * of template types.
          */
         explicit constexpr tuple_impl (Ts const &... ts)
             : type_node <I, Ts> (ts)...
@@ -367,17 +283,8 @@ namespace detail
         /*
          * Converting construction of each member object from the values in
          * us..., passed to constructors as stl::forward <Ui> (ui) for each i.
-         *
-         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
-         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
-         * for each i is checked in the constructors for each inherited node.
          */
-        template <
-            class ... Us,
-            typename = typename std::enable_if <
-                sizeof... (Us) == size::value
-            >::type
-        >
+        template <class ... Us>
         explicit constexpr tuple_impl (Us && ... us)
             : type_node <I, Ts> (stl::forward <Us> (us))...
         {}
@@ -387,20 +294,10 @@ namespace detail
          * in other, passed to constructors as if by stl::get <i> (other) for
          * each i.
          *
-         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
-         * The requirement that std::is_constructible <Ti, Ui const &>::value is
-         * true for each i is checked in the constructors for each inherited
-         * node.
-         *
          * This constructor delegates to the converting constructor taking a
          * list of references to the const member objects of other.
          */
-        template <
-            class ... Us,
-            typename = typename std::enable_if <
-                sizeof... (Us) == size::value
-            >::type
-        >
+        template <class ... Us>
         constexpr tuple_impl (rebind <Us...> const & other)
             : tuple_impl (other.template type_node <I, Us>::member...)
         {}
@@ -410,61 +307,14 @@ namespace detail
          * in other, passed to constructors as if by
          * stdl::forward <Ui> (stl::get <i> (other)) for each i.
          *
-         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
-         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
-         * for each i is checked in the constructors for each inherited node.
-         *
          * This constructor delegates to the converting constructor taking a
          * list of forwarding references to the member objects of other.
          */
-        template <
-            class ... Us,
-            typename = typename std::enable_if <
-                sizeof... (Us) == size::value
-            >::type
-        >
+        template <class ... Us>
         constexpr tuple_impl (rebind <Us...> && other)
             : tuple_impl (
                 stl::forward <Us> (other.template type_node <I, Us>::member)...
             )
-        {}
-
-        /*
-         * Converting copy construction of each member object from the member
-         * objects of the pair p, in order from first to second.
-         *
-         * This constructor is enabled if and only if sizeof... (Ts) == 2.
-         *
-         * The requirement that std::is_constructible <T0, U1>::value and
-         * std::is_constructible <T1, U2>::value are both true is checked by
-         * the constructors for each inherited node.
-         *
-         * This constructor delegates to the converting constructor taking a
-         * list of references to the const member objects of p.
-         */
-        template <class U1, class U2>
-        constexpr tuple_impl (pair <U1, U2> const & p)
-            : tuple_impl (p.first, p.second)
-        {}
-
-        /*
-         * Converting move construction of each member object from the member
-         * objects of the pair p, in order from first to second, as if by
-         * stl::forward <U1> (p.first) and stl::forward <U2> (p.second).
-         *
-         * This constructor is enabled if and only if sizeof... (Ts) == 2.
-         *
-         * The requirement that std::is_constructible <T0, U1 &&>::value and
-         * std::is_constructible <T1, U2 &&>::value are both true is checked by
-         * the constructors for each inherited node.
-         *
-         * This constructor delegates to the converting constructor taking a
-         * list of forwarding references to the member objects of p.
-         */
-        template <class U1, class U2>
-        constexpr tuple_impl (pair <U1, U2> && p)
-            : tuple_impl (stl::forward <U1> (stl::move (p.first)),
-                          stl::forward <U2> (stl::move (p.second)))
         {}
 
         /* Defaulted copy and move constructors. */
@@ -487,9 +337,6 @@ namespace detail
          * Copy construction by uses-allocator construction for each member
          * object, appropriately detected by the constructor for each inherited
          * node.
-         *
-         * The requirement that std::is_copy_constructible <Ti>::value is true
-         * for each i is checked in the constructors for each inherited node.
          */
         template <class Allocator>
         tuple_impl (std::allocator_arg_t,
@@ -505,17 +352,8 @@ namespace detail
          * member object from the values in us..., passed to constructos by
          * stl::forward <Ui> (ui) for each i, appropriately detected by the
          * constructor for each inherited node.
-         *
-         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
-         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
-         * for each i is checked in the constructors for each inherited node.
          */
-        template <
-            class Allocator, class ... Us,
-            typename = typename std::enable_if <
-                sizeof... (Us) == size::value
-            >::type
-        >
+        template <class Allocator, class ... Us>
         tuple_impl (std::allocator_arg_t, Allocator const & alloc, Us && ... us)
             : type_node <I, Ts> (
                 bits::make_uses_allocator_tag <Ts, Allocator> {},
@@ -528,9 +366,6 @@ namespace detail
          * Copy construction by uses-allocator construction for each member
          * object, passed to constructors as if by stl::get <i> (other) for each
          * i, appropriately detected by the constructor for each inherited node.
-         *
-         * The requirement that std::is_copy_constructible <Ti>::value is true
-         * for each i is checked in the constructors for each inherited node.
          *
          * This constructor delegates to the uses-allocator constructor taking
          * a list of references to the const member objects of other.
@@ -552,9 +387,6 @@ namespace detail
          * stl::move (stl::get <i> (other)) for each i, appropriately detected
          * by the constructor for each inherited node.
          *
-         * The requirement that std::is_move_constructible <Ti>::value is true
-         * for each i is checked in the constructors for each inherited node.
-         *
          * This constructor delegates to the uses-allocator constructor taking
          * a list of forwarding references to the member objects of other.
          */
@@ -574,21 +406,11 @@ namespace detail
          * object from the member objects in other, passed to constructors as if
          * by stl::get <i> (other) for each i.
          *
-         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
-         * The requirement that std::is_constructible <Ti, Ui const &>::value is
-         * true for each i is checked in the constructors for each inherited
-         * node.
-         *
          * This constructor delegates to the converting uses-allocator
          * constructor taking a list of references to the const member objects
          * of other.
          */
-        template <
-            class Allocator, class ... Us,
-            typename = typename std::enable_if <
-                sizeof... (Us) == size::value
-            >::type
-        >
+        template <class Allocator, class ... Us>
         tuple_impl (std::allocator_arg_t,
                     Allocator const & alloc,
                     rebind <Us...> const & other)
@@ -604,20 +426,11 @@ namespace detail
          * object from the member objects in other, passed to constructors as if
          * by stdl::forward <Ui> (stl::get <i> (other)) for each i.
          *
-         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
-         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
-         * for each i is checked in the constructors for each inherited node.
-         *
          * This constructor delegates to the converting uses-allocator
          * constructor taking a list of forwarding references to the member
          * objects of other.
          */
-        template <
-            class Allocator, class ... Us,
-            typename = typename std::enable_if <
-                sizeof... (Us) == size::value
-            >::type
-        >
+        template <class Allocator, class ... Us>
         tuple_impl (std::allocator_arg_t,
                     Allocator const & alloc,
                     rebind <Us...> && other)
@@ -629,66 +442,16 @@ namespace detail
         {}
 
         /*
-         * Converting copy construction of each member object from the member
-         * objects of the pair p, in order from first to second, by uses-
-         * allocator construction, appropriately detected by the constructor
-         * for each inherited node.
-         *
-         * This constructor is enabled if and only if sizeof... (Ts) == 2.
-         *
-         * The requirement that std::is_constructible <T0, U1>::value and
-         * std::is_constructible <T1, U2>::value are both true is checked by
-         * the constructors for each inherited node.
-         *
-         * This constructor delegates to the converting uses-allocator
-         * constructor taking a list of references to the const member objects
-         * of p.
-         */
-        template <class Allocator, class U1, class U2>
-        constexpr tuple_impl (std::allocator_arg_t,
-                              Allocator const & alloc,
-                              pair <U1, U2> const & p)
-            : tuple_impl (std::allocator_arg_t {}, alloc, p.first, p.second)
-        {}
-
-        /*
-         * Converting move construction of each member object from the member
-         * objects of the pair p, in order from first to second, as if by
-         * stl::forward <U1> (p.first) and stl::forward <U2> (p.second).
-         *
-         * This constructor is enabled if and only if sizeof... (Ts) == 2.
-         *
-         * The requirement that std::is_constructible <T0, U1 &&>::value and
-         * std::is_constructible <T1, U2 &&>::value are both true is checked by
-         * the constructors for each inherited node.
-         *
-         * This constructor delegates to the converting uses-allocator
-         * constructor taking a list of forwarding references to the member
-         * objects of p.
-         */
-        template <class Allocator, class U1, class U2>
-        constexpr tuple_impl (std::allocator_arg_t,
-                              Allocator const & alloc,
-                              pair <U1, U2> && p)
-            : tuple_impl (
-                std::allocator_arg_t {},
-                alloc,
-                stl::forward <U1> (stl::move (p.first)),
-                stl::forward <U2> (stl::move (p.second))
-            )
-        {}
-
-        /*
          * Copy assignment operator of each member object by the corresponding
          * member object of other.
          */
         tuple_impl & operator= (tuple_impl const & other)
         {
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member =
                     other.template type_node <I, Ts>::member),
                  I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -705,11 +468,11 @@ namespace detail
                 >::value
             )
         {
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member =
                     stl::move (other.template type_node <I, Ts>::member)),
                  I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -718,23 +481,15 @@ namespace detail
         /*
          * Converting copy assignment operator of each member object by the
          * corresponding member object of other.
-         *
-         * This assignment operator requires that
-         * sizeof... (Us) == sizeof... (Ts).
          */
-        template <
-            class ... Us,
-            typename = typename std::enable_if <
-                sizeof... (Us) == size::value
-            >::type
-        >
+        template <class ... Us>
         tuple_impl & operator= (rebind <Us...> const & other)
         {
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member =
                     other.template type_node <I, Us>::member),
                  I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -743,23 +498,15 @@ namespace detail
         /*
          * Converting move assignment operator of each member object by the
          * corresponding member object of other, using move semantics.
-         *
-         * This assignment operator requires that
-         * sizeof... (Us) == sizeof... (Ts).
          */
-        template <
-            class ... Us,
-            typename = typename std::enable_if <
-                sizeof... (Us) == size::value
-            >::type
-        >
+        template <class ... Us>
         tuple_impl & operator= (rebind <Us...> && other)
         {
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member = stl::forward <Us> (
                     other.template type_node <I, Us>::member
                 )), I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -768,19 +515,13 @@ namespace detail
         /*
          * Converting copy assignment operator of each member object by the
          * corresponding member objects of the pair p, from first to second.
-         *
-         * This assignment operator requires that sizeof... (Ts) == 2.
          */
         template <class U1, class U2>
         tuple_impl & operator= (pair <U1, U2> const & p)
         {
-            static_assert (
-                size::value == 2 && sizeof (U1), "cannot assign pair to tuple"
-            );
-
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member = stl::get <I> (p)), I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -790,20 +531,14 @@ namespace detail
          * Converting move assignment operator of each member object by the
          * corresponding member objects of the pair p, from first to second,
          * using move semantics.
-         *
-         * This assignment operator requires that sizeof... (Ts) == 2.
          */
         template <class U1, class U2>
         tuple_impl & operator= (pair <U1, U2> && p) noexcept
         {
-            static_assert (
-                size::value == 2 && sizeof (U1), "cannot assign pair to tuple"
-            );
-
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((type_node <I, Ts>::member = stl::get <I> (stl::move (p))),
                  I)...
-            }};
+            };
 
             (void) _expression_eater;
             return *this;
@@ -824,10 +559,10 @@ namespace detail
         {
             using stl::swap;
 
-            bits::ignore_type _expression_eater [] = {{
+            bits::ignore_type _expression_eater [] = {
                 ((swap (type_node <I, Ts>::member,
                         other.template type_node <I, Ts>::member)), I)...
-            }};
+            };
             (void) _expression_eater;
         }
 
@@ -906,23 +641,13 @@ namespace detail
             }
         };
 
-        template <
-            class ... Us,
-            typename = typename std::enable_if <
-                sizeof... (Us) == size::value
-            >::type
-        >
+        template <class ... Us>
         constexpr bool operator== (rebind <Us...> const & rhs) const noexcept
         {
             return compare <0, Us...>::compare_eq (*this, rhs);
         }
 
-        template <
-            class ... Us,
-            typename = typename std::enable_if <
-                sizeof... (Us) == size::value
-            >::type
-        >
+        template <class ... Us>
         constexpr bool operator< (rebind <Us...> const & rhs) const noexcept
         {
             return compare <0, Us...>::compare_lt (*this, rhs);
@@ -931,26 +656,30 @@ namespace detail
 }
 
     /*
+     * Forward declare helper structs for get and comparison implementations.
+     */
+namespace detail
+{
+    template <class>
+    struct base_access;
+
+    template <class>
+    struct get_impl;
+
+    struct compare_impl;
+};
+
+    /*
      * We will be writing two cases for tuple:
-     *      (i)  the empty tuple;
-     *      (ii) the tuple of arbitrary elements.
+     *      (i)   the empty tuple;
+     *      (ii)  the tuple of two elements
+     *      (iii) the tuple of arbitrary elements.
      *
      * This is the forward declaration of tuple that we'll specialize further
      * down.
      */
     template <class ...>
     class tuple;
-
-    /*
-     * Forward declare helper structs for get and comparison implementations.
-     */
-namespace detail
-{
-    template <class>
-    struct get_impl;
-
-    struct compare_impl;
-};
 
     /*
      * Empty tuple. This differs from other tuples in a few ways, most notably
@@ -997,13 +726,535 @@ namespace detail
     };
 
     /*
+     * Tuple of two elements. This is similar to the general case except in that
+     * constructors and assignment operators taking pairs are included.
+     */
+    template <class T1, class T2>
+    class tuple <T1, T2>
+        : private detail::tuple_impl <stl::index_sequence <0, 1>, T1, T2>
+    {
+        using base = detail::tuple_impl <stl::index_sequence <0, 1>, T1, T2>;
+
+        friend struct detail::base_access <tuple>;
+        friend struct detail::get_impl <tuple>;
+        friend struct detail::compare_impl;
+
+    public:
+        /*
+         * The source for the constructor specifications can be found at
+         * en.cppreference.com/w/cpp/tuple/tuple
+         *
+         * As always, we'll be u1, u2 the C++14 signatures.
+         *
+         * The implementation notes for each constructor can be found above in
+         * the implementation of the tuple_impl class. The appropriate enable_if
+         * checks will be performed up-front in the definitions of each
+         * constructor below, allowing u1, u2 keep the actual implementations in
+         * tuple_impl reletively clean.
+         *
+         * The tuple of two element1, t2 handled by enable_if's for the
+         * appropriate construction and assignment by/from pairs.
+         */
+
+        /*
+         * Since the first two constructors are not templated, these are the
+         * only construct1, t2ere the requirement1, t2e not checked up-front.
+         * Both the requirement1, t2at t1, t2 are default constructible (for the
+         * default constructor) and that t1, t2 are copy constructible (for the
+         * second constructor) are checked for each type, respectively, in
+         * the type_node <T> structs.
+         */
+
+        /*
+         * Default constructor. Requires that all t1, t2 are  themselves default
+         * constructible.
+         */
+        constexpr tuple (void) : base ()
+        {}
+
+        ~tuple (void) noexcept (std::is_nothrow_destructible <base>::value)
+            = default;
+
+        /*
+         * Copy construction of each node from values inhabiting the full list
+         * of template types.
+         */
+        explicit constexpr tuple (T1 const & t1, T2 const & t2) : base (t1, t2)
+        {}
+
+        /*
+         * Converting construction of each member object from the values in
+         * u1, u2, passed to constructors as stl::forward <Ui> (ui) for each i.
+         *
+         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class U1, class U2,
+            typename = typename std::enable_if <
+                std::is_constructible <T1, U1 &&>::value &&
+                std::is_constructible <T1, U2 &&>::value
+            >::type
+        >
+        explicit constexpr tuple (U1 && u1, U2 && u2)
+            : base (stl::forward <U1> (u1), stl::forward <U2> (u2))
+        {}
+
+        /*
+         * Converting construction of each member object from the member objects
+         * in other, passed to constructors as if by stl::get <i> (other) for
+         * each i.
+         *
+         * The requirement that std::is_constructible <Ti, Ui const &>::value is
+         * true for each i must also be met.
+         */
+        template <
+            class U1, class U2,
+            typename = typename std::enable_if <
+                std::is_constructible <T1, U1 const &>::value &&
+                std::is_constructible <T2, U2 const &>::value
+            >::type
+        >
+        constexpr tuple (tuple <U1, U2> const & other)
+            : base (detail::base_access <tuple <U1, U2>>::slice (other))
+        {}
+
+        /*
+         * Converting construction of each member object from the member objects
+         * in other, passed to constructors as if by
+         * stdl::forward <Ui> (stl::get <i> (other)) for each i.
+         *
+         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class U1, class U2,
+            typename = typename std::enable_if <
+                std::is_constructible <T1, U1 &&>::value &&
+                std::is_constructible <T2, U2 &&>::value
+            >::type
+        >
+        constexpr tuple (tuple <U1, U2> && other)
+            : base (
+                detail::base_access <tuple <U1, U2>>::slice (stl::move (other))
+            )
+        {}
+
+        /*
+         * Converting copy construction of each member object from the member
+         * object1, t2 the pair p, in order from first to second.
+         *
+         * This constructor is enabled if and only if sizeof... (t1, t2= 2.
+         *
+         * The requirement that std::is_constructible <T0, U1>::value and
+         * std::is_constructible <T1, U2>::value are both true must also be met.
+         */
+        template <
+            class U1, class U2,
+            typename = typename std::enable_if <
+                std::is_constructible <T1, U1 const &>::value &&
+                std::is_constructible <T2, U2 const &>::value
+            >::type
+        >
+        constexpr tuple (pair <U1, U2> const & p)
+            : base (p.first, p.second)
+        {}
+
+        /*
+         * Converting move construction of each member object from the member
+         * object1, t2 the pair p, in order from first to second, as if by
+         * stl::forward <U1> (p.first) and stl::forward <U2> (p.second).
+         *
+         * This constructor is enabled if and only if sizeof... (t1, t2= 2.
+         *
+         * The requirement that std::is_constructible <T0, U1 &&>::value and
+         * std::is_constructible <T1, U2 &&>::value are both true must also be
+         * met.
+         */
+        template <
+            class U1, class U2,
+            typename = typename std::enable_if <
+                std::is_constructible <T1, U1 &&>::value &&
+                std::is_constructible <T2, U2 &&>::value
+            >::type
+        >
+        constexpr tuple (pair <U1, U2> && p)
+            : base (stl::forward <U1> (p.first), stl::forward <U2> (p.second))
+        {}
+
+        /* Explicitly defaulted copy and move constructors. */
+        tuple (tuple const &) = default;
+        tuple (tuple &&)      = default;
+
+        /*
+         * Default construction by uses-allocator construction for each member
+         * object, appropriately detected by the constructor for each inherited
+         * node.
+         */
+        template <
+            class Allocator,
+            typename = typename std::enable_if <
+                (std::is_default_constructible <T1>::value ||
+                 std::is_constructible <T1, Allocator const &>::value) &&
+                (std::is_default_constructible <T2>::value ||
+                 std::is_constructible <T2, Allocator const &>::value)
+            >::type
+        >
+        tuple (std::allocator_arg_t, Allocator const & alloc)
+            : base (std::allocator_arg_t {}, alloc)
+        {}
+
+        /*
+         * Copy construction by uses-allocator construction for each member
+         * object, appropriately detected by the constructor for each inherited
+         * node.
+         *
+         * The requirement that std::is_copy_constructible <Ti>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class Allocator,
+            typename = typename std::enable_if <
+                (std::is_copy_constructible <T1>::value ||
+                 std::is_constructible <
+                    T1, T1 const &, Allocator const &
+                 >::value) &&
+                (std::is_copy_constructible <T2>::value ||
+                 std::is_constructible <
+                    T2, T2 const &, Allocator const &
+                 >::value)
+            >::type
+        >
+        tuple (std::allocator_arg_t,
+               Allocator const & alloc,
+               T1 const & t1,
+               T2 const & t2)
+            : base (std::allocator_arg_t {}, alloc, t1, t2)
+        {}
+
+        /*
+         * Converting construction by uses-allocator construction for each
+         * member object from the values in u1, u2, passed to constructos by
+         * stl::forward <Ui> (ui) for each i, appropriately detected by the
+         * constructor for each inherited node.
+         *
+         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class Allocator, class U1, class U2,
+            typename = typename std::enable_if <
+                (std::is_constructible <T1, U1 &&>::value ||
+                 std::is_constructible <T1, U1 &&, Allocator const &>::value) &&
+                (std::is_constructible <T2, U2 &&>::value ||
+                 std::is_constructible <T2, U2 &&, Allocator const &>::value)
+            >::type
+        >
+        tuple (std::allocator_arg_t,
+               Allocator const & alloc,
+               U1 && u1,
+               U2 && u2)
+            : base (std::allocator_arg_t {}, alloc, u1, u2)
+        {}
+
+        /*
+         * Copy construction by uses-allocator construction for each member
+         * object, passed to constructors as if by stl::get <i> (other) for each
+         * i, appropriately detected by the constructor for each inherited node.
+         *
+         * The requirement that std::is_copy_constructible <Ti>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class Allocator,
+            typename = typename std::enable_if <
+                (std::is_copy_constructible <T1>::value ||
+                 std::is_constructible <
+                    T1, T1 const &, Allocator const &
+                 >::value) &&
+                (std::is_copy_constructible <T2>::value ||
+                 std::is_constructible <
+                    T2, T2 const &, Allocator const &
+                 >::value)
+            >::type
+        >
+        tuple (std::allocator_arg_t,
+               Allocator const & alloc,
+               tuple const & other)
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple>::slice (other))
+        {}
+
+        /*
+         * Move construction by uses-allocator construction for each member
+         * object, passed to constructors as if by
+         * stl::move (stl::get <i> (other)) for each i, appropriately detected
+         * by the constructor for each inherited node.
+         *
+         * The requirement that std::is_move_constructible <Ti>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class Allocator, class U1, class U2,
+            typename = typename std::enable_if <
+                (std::is_move_constructible <T1>::value ||
+                 std::is_constructible <T1, T1 &&, Allocator const &>::value) &&
+                (std::is_move_constructible <T2>::value ||
+                 std::is_constructible <T2, T2 &&, Allocator const &>::value)
+            >::type
+        >
+        tuple (std::allocator_arg_t,
+               Allocator const & alloc,
+               tuple && other)
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple>::slice (stl::move (other)))
+        {}
+
+        /*
+         * Converting construction by uses-allocator construction of each member
+         * object from the member object1, t2 other, passed to constructors as
+         * if by stl::get <i> (other) for each i.
+         *
+         * The requirement that std::is_constructible <Ti, Ui const &>::value is
+         * true for each i must also be met.
+         */
+        template <
+            class Allocator, class U1, class U2,
+            typename = typename std::enable_if <
+                (std::is_constructible <T1, U1 const &>::value ||
+                 std::is_constructible <
+                    T1, U1 const &, Allocator const &
+                 >::value) &&
+                (std::is_constructible <T2, U2 const &>::value ||
+                 std::is_constructible <
+                    T2, U2 const &, Allocator const &
+                 >::value)
+            >::type
+        >
+        tuple (std::allocator_arg_t,
+               Allocator const & alloc,
+               tuple <U1, U2> const & other)
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple <U1, U2>>::slice (other))
+        {}
+
+        /*
+         * Converting construction by uses-allocator construction of each member
+         * object from the member objects in other, passed to constructors as if
+         * by stdl::forward <Ui> (stl::get <i> (other)) for each i.
+         *
+         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class Allocator, class U1, class U2,
+            typename = typename std::enable_if <
+                (std::is_constructible <T1, U1 &&>::value ||
+                 std::is_constructible <T1, U1 &&, Allocator const &>::value) &&
+                (std::is_constructible <T2, U2 &&>::value ||
+                 std::is_constructible <T2, U2 &&, Allocator const &>::value)
+            >::type
+        >
+        tuple (std::allocator_arg_t,
+               Allocator const & alloc,
+               tuple <U1, U2> && other)
+            : base (
+                std::allocator_arg_t {}, alloc,
+                detail::base_access <tuple <U1, U2>>::slice (stl::move (other))
+            )
+        {}
+
+        /*
+         * Converting copy construction of each member object from the member
+         * objects of the pair p, in order from first to second, by uses-
+         * allocator construction, appropriately detected by the constructor
+         * for each inherited node.
+         *
+         * This constructor is enabled if and only if sizeof... (Ts) == 2.
+         *
+         * The requirement that std::is_constructible <T0, U1>::value and
+         * std::is_constructible <T1, U2>::value are both true must also be met.
+         */
+        template <
+            class Allocator, class U1, class U2,
+            typename = typename std::enable_if <
+                (std::is_constructible <T1, U1 const &>::value ||
+                 std::is_constructible <
+                    T1, U1 const &, Allocator const &
+                 >::value) &&
+                (std::is_constructible <T2, U2 const &>::value ||
+                 std::is_constructible <
+                    T2, U2 const &, Allocator const &
+                 >::value)
+            >::type
+        >
+        constexpr tuple (std::allocator_arg_t,
+                         Allocator const & alloc,
+                         pair <U1, U2> const & p)
+            : base (std::allocator_arg_t {}, alloc, p.first, p.second)
+        {}
+
+        /*
+         * Converting move construction of each member object from the member
+         * objects of the pair p, in order from first to second, as if by
+         * stl::forward <U1> (p.first) and stl::forward <U2> (p.second).
+         *
+         * This constructor is enabled if and only if sizeof... (Ts) == 2.
+         *
+         * The requirement that std::is_constructible <T0, U1 &&>::value and
+         * std::is_constructible <T1, U2 &&>::value are both true must also be
+         * met.
+         */
+        template <
+            class Allocator, class U1, class U2,
+            typename = typename std::enable_if <
+                (std::is_constructible <T1, U1 &&>::value ||
+                 std::is_constructible <T1, U1 &&, Allocator const &>::value) &&
+                (std::is_constructible <T2, U2 &&>::value ||
+                 std::is_constructible <T2, U2 &&, Allocator const &>::value)
+            >::type
+        >
+        constexpr tuple (std::allocator_arg_t,
+                         Allocator const & alloc,
+                         pair <U1, U2> && p)
+            : base (
+                std::allocator_arg_t {},
+                alloc,
+                stl::forward <U1> (p.first),
+                stl::forward <U2> (p.second)
+            )
+        {}
+
+        /*
+         * Copy assignment operator of each member object by the corresponding
+         * member object of other.
+         */
+        tuple & operator= (tuple const & other)
+        {
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple>::slice (other);
+            return *this;
+        }
+
+        /*
+         * Moveassignment operator of each member object by the corresponding
+         * member object of other, using move semantics.
+         */
+        tuple & operator= (tuple && other)
+            noexcept (noexcept (
+                stl::declval <base &> () = stl::declval <base &&> ()
+            ))
+        {
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple>::slice (stl::move (other));
+            return *this;
+        }
+
+        /*
+         * Converting copy assignment operator of each member object by the
+         * corresponding member object of other.
+         *
+         * This assignment operator requires that
+         * sizeof... (Us) == sizeof... (Ts).
+         */
+        template <
+            class U1, class U2,
+            typename = typename std::enable_if <
+                std::is_assignable <T1, U1 const &>::value &&
+                std::is_assignable <T2, U2 const &>::value
+            >::type
+        >
+        tuple & operator= (tuple <U1, U2> const & other)
+        {
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple <U1, U2>>::slice (other);
+            return *this;
+        }
+
+        /*
+         * Converting move assignment operator of each member object by the
+         * corresponding member object of other, using move semantics.
+         *
+         * This assignment operator requires that
+         * sizeof... (Us) == sizeof... (Ts).
+         */
+        template <
+            class U1, class U2,
+            typename = typename std::enable_if <
+                std::is_assignable <T1, U1 &&>::value &&
+                std::is_assignable <T2, U2 &&>::value
+            >::type
+        >
+        tuple & operator= (tuple <U1, U2> && other)
+        {
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple <U1, U2>>::slice (stl::move (other));
+            return *this;
+        }
+
+        /*
+         * Converting copy assignment operator of each member object by the
+         * corresponding member objects of the pair p, from first to second.
+         *
+         * This assignment operator requires that sizeof... (Ts) == 2.
+         */
+        template <
+            class U1, class U2,
+            typename = typename std::enable_if <
+                std::is_assignable <T1, U1 const &>::value &&
+                std::is_assignable <T2, U2 const &>::value
+            >::type
+        >
+        tuple & operator= (pair <U1, U2> const & p)
+        {
+            detail::base_access <tuple>::slice (*this) = p;
+            return *this;
+        }
+
+        /*
+         * Converting move assignment operator of each member object by the
+         * corresponding member objects of the pair p, from first to second,
+         * using move semantics.
+         *
+         * This assignment operator requires that sizeof... (Ts) == 2.
+         */
+        template <
+            class U1, class U2,
+            typename = typename std::enable_if <
+                std::is_assignable <T1, U1 &&>::value &&
+                std::is_assignable <T2, U2 &&>::value
+            >::type
+        >
+        tuple & operator= (pair <U1, U2> && p) noexcept
+        {
+            detail::base_access <tuple>::slice = stl::move (p);
+            return *this;
+        }
+
+        /*
+         * Swaps each member object with the corresponding member object of
+         * other.
+         */
+        void swap (tuple & other)
+            noexcept (noexcept (
+                stl::declval <base &> ().swap (stl::declval <base &> ())
+            ))
+        {
+            detail::base_access <tuple>::slice (*this).swap (
+                detail::base_access <tuple>::slice (other)
+            );
+        }
+    };
+
+    /*
      * General implementation of tuple. We make a single inheritence from the
      * tuple_impl class, which itself has a multiple inheritence from the type
      * nodes for each type in Ts... This ensures that the object layout of tuple
      * is correct (that is, in the same order as that of Ts...).
      *
-     * Since tuple_impl does all the magic for us, all we need do here is
-     * forward arguments to the correct delegate constructors.
+     * Since tuple_impl does all the magic for us, all we need do here is check
+     * that constructor requirements are met and delegate to the correct
+     * constructors from tuple_impl.
      */
     template <class ... Ts>
     class tuple : private detail::tuple_impl <
@@ -1013,26 +1264,9 @@ namespace detail
         using base = detail::tuple_impl <
             stl::make_index_sequence <sizeof... (Ts)>, Ts...
         >;
+        using size = std::integral_constant <std::size_t, sizeof... (Ts)>;
 
-        /*
-         * These are helper methods for object-slicing references to our tuple
-         * into references to the tuple_impl.
-         */
-        static base & base_slice (tuple & t) noexcept
-        {
-            return static_cast <base &> (t);
-        }
-
-        static base const & base_slice (tuple const & t) noexcept
-        {
-            return static_cast <base const &> (t);
-        }
-
-        static base && base_slice (tuple && t) noexcept
-        {
-            return static_cast <base &&> (stl::move (t));
-        }
-
+        friend struct detail::base_access <tuple>;
         friend struct detail::get_impl <tuple>;
         friend struct detail::compare_impl;
 
@@ -1044,157 +1278,370 @@ namespace detail
          * As always, we'll be using the C++14 signatures.
          *
          * The implementation notes for each constructor can be found above in
-         * the implementation of the tuple_impl class.
-         *
-         * The tuple of two elements is handled by enable_if's for the
-         * appropriate construction and assignment by/from pairs in the
-         * tuple_impl class.
+         * the implementation of the tuple_impl class. The appropriate enable_if
+         * checks will be performed up-front in the definitions of each
+         * constructor below, allowing us to keep the actual implementations in
+         * tuple_impl reletively clean.
          */
 
+        /*
+         * Since the first two constructors are not templated, these are the
+         * only constructs where the requirements are not checked up-front.
+         * Both the requirements that Ts... are default constructible (for the
+         * default constructor) and that Ts... are copy constructible (for the
+         * second constructor) are checked for each type, respectively, in
+         * the type_node <T> structs.
+         */
+
+        /*
+         * Default constructor. Requires that all Ts... are  themselves default
+         * constructible.
+         */
         constexpr tuple (void) : base ()
         {}
 
+        /*
+         * Copy construction of each node from values inhabiting the full list
+         * of template types.
+         *
+         * Requires that sizeof... (Ts) be at least 1, and each type in Ts...
+         * must be copy constructible.
+         */
         explicit constexpr tuple (Ts const &... ts) : base (ts...)
         {}
 
-        template <class ... Us>
+        /*
+         * Converting construction of each member object from the values in
+         * us..., passed to constructors as stl::forward <Ui> (ui) for each i.
+         *
+         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
+         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class ... Us,
+            typename = typename std::enable_if <
+                sizeof... (Us) == size::value &&
+                bits::fold_and <
+                    std::is_constructible <Ts, Us &&>::value...
+                >::value
+            >::type
+        >
         explicit constexpr tuple (Us && ... us)
             : base (stl::forward <Us> (us)...)
         {}
 
-        template <class ... Us>
+        /*
+         * Converting construction of each member object from the member objects
+         * in other, passed to constructors as if by stl::get <i> (other) for
+         * each i.
+         *
+         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
+         * The requirement that std::is_constructible <Ti, Ui const &>::value is
+         * true for each i must also be met.
+         */
+        template <
+            class ... Us,
+            typename = typename std::enable_if <
+                sizeof... (Us) == size::value &&
+                bits::fold_and <
+                    std::is_constructible <Ts, Us const &>::value...
+                >::value
+            >::type
+        >
         constexpr tuple (tuple <Us...> const & other)
-            : base (tuple <Us...>::base_slice (other))
+            : base (detail::base_access <tuple <Us...>>::slice (other))
         {}
 
-        template <class ... Us>
+        /*
+         * Converting construction of each member object from the member objects
+         * in other, passed to constructors as if by
+         * stdl::forward <Ui> (stl::get <i> (other)) for each i.
+         *
+         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
+         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class ... Us,
+            typename = typename std::enable_if <
+                sizeof... (Us) == size::value &&
+                bits::fold_and <
+                    std::is_constructible <Ts, Us &&>::value...
+                >::value
+            >::type
+        >
         constexpr tuple (tuple <Us...> && other)
-            : base (tuple <Us...>::base_slice (stl::move (other)))
+            : base (
+                detail::base_access <tuple <Us...>>::slice (stl::move (other))
+            )
         {}
 
-        template <class U1, class U2>
-        constexpr tuple (pair <U1, U2> const & p) : base (p)
-        {}
-
-        template <class U1, class U2>
-        constexpr tuple (pair <U1, U2> && p) : base (stl::move (p))
-        {}
-
+        /* Explicitly defaulted copy and move constructors. */
         tuple (tuple const &) = default;
         tuple (tuple &&)      = default;
 
-        template <class Allocator>
+        /*
+         * Default construction by uses-allocator construction for each member
+         * object, appropriately detected by the constructor for each inherited
+         * node.
+         */
+        template <
+            class Allocator,
+            typename = typename std::enable_if <
+                bits::fold_and <
+                    (std::is_default_constructible <Ts>::value ||
+                     std::is_constructible <Ts, Allocator const &>::value)...
+                >::value
+            >::type
+        >
         tuple (std::allocator_arg_t, Allocator const & alloc)
             : base (std::allocator_arg_t {}, alloc)
         {}
 
-        template <class Allocator>
+        /*
+         * Copy construction by uses-allocator construction for each member
+         * object, appropriately detected by the constructor for each inherited
+         * node.
+         *
+         * The requirement that std::is_copy_constructible <Ti>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class Allocator,
+            typename = typename std::enable_if <
+                bits::fold_and <
+                    (std::is_copy_constructible <Ts>::value ||
+                     std::is_constructible <
+                        Ts, Ts const &, Allocator const &
+                     >::value)...
+                >::value
+            >::type
+        >
         tuple (std::allocator_arg_t, Allocator const & alloc, Ts const & ... ts)
             : base (std::allocator_arg_t {}, alloc, ts...)
         {}
 
-        template <class Allocator, class ... Us>
+        /*
+         * Converting construction by uses-allocator construction for each
+         * member object from the values in us..., passed to constructos by
+         * stl::forward <Ui> (ui) for each i, appropriately detected by the
+         * constructor for each inherited node.
+         *
+         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
+         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class Allocator, class ... Us,
+            typename = typename std::enable_if <
+                sizeof... (Us) == size::value &&
+                bits::fold_and <
+                    (std::is_constructible <Ts, Us &&>::value ||
+                     std::is_constructible <
+                        Ts, Us &&, Allocator const &
+                     >::value)...
+                >::value
+            >::type
+        >
         tuple (std::allocator_arg_t, Allocator const & alloc, Us && ... us)
             : base (std::allocator_arg_t {}, alloc, stl::forward <Us> (us)...)
         {}
 
-        template <class Allocator>
+        /*
+         * Copy construction by uses-allocator construction for each member
+         * object, passed to constructors as if by stl::get <i> (other) for each
+         * i, appropriately detected by the constructor for each inherited node.
+         *
+         * The requirement that std::is_copy_constructible <Ti>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class Allocator,
+            typename = typename std::enable_if <
+                bits::fold_and <
+                    (std::is_copy_constructible <Ts>::value ||
+                     std::is_constructible <
+                        Ts, Ts const &, Allocator const &
+                     >::value)...
+                >::value
+            >::type
+        >
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple const & other)
-            : base (std::allocator_arg_t {}, alloc, base_slice (other))
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple>::slice (other))
         {}
 
-        template <class Allocator>
+        /*
+         * Move construction by uses-allocator construction for each member
+         * object, passed to constructors as if by
+         * stl::move (stl::get <i> (other)) for each i, appropriately detected
+         * by the constructor for each inherited node.
+         *
+         * The requirement that std::is_move_constructible <Ti>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class Allocator,
+            typename = typename std::enable_if <
+                bits::fold_and <
+                    (std::is_copy_constructible <Ts>::value ||
+                     std::is_constructible <
+                        Ts, Ts &&, Allocator const &
+                     >::value)...
+                >::value
+            >::type
+        >
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple && other)
-            : base (std::allocator_arg_t {},
-                    alloc,
-                    base_slice (stl::move (other)))
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple>::slice (stl::move (other)))
         {}
 
-        template <class Allocator, class ... Us>
+        /*
+         * Converting construction by uses-allocator construction of each member
+         * object from the member objects in other, passed to constructors as if
+         * by stl::get <i> (other) for each i.
+         *
+         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
+         * The requirement that std::is_constructible <Ti, Ui const &>::value is
+         * true for each i must also be met.
+         */
+        template <
+            class Allocator, class ... Us,
+            typename = typename std::enable_if <
+                sizeof... (Us) == size::value &&
+                bits::fold_and <
+                    (std::is_constructible <Ts, Us const &>::value ||
+                     std::is_constructible <
+                        Ts, Us const &, Allocator const &
+                     >::value)...
+                >::value
+            >::type
+        >
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple <Us...> const & other)
-            : base (std::allocator_arg_t {},
-                    alloc,
-                    tuple <Us...>::base_slice (other))
+            : base (std::allocator_arg_t {}, alloc,
+                    detail::base_access <tuple <Us...>>::slice (other))
         {}
 
-        template <class Allocator, class ... Us>
+        /*
+         * Converting construction by uses-allocator construction of each member
+         * object from the member objects in other, passed to constructors as if
+         * by stdl::forward <Ui> (stl::get <i> (other)) for each i.
+         *
+         * This constructor requires that sizeof... (Us) == sizeof... (Ts).
+         * The requirement that std::is_constructible <Ti, Ui &&>::value is true
+         * for each i must also be met.
+         */
+        template <
+            class Allocator, class ... Us,
+            typename = typename std::enable_if <
+                sizeof... (Us) == size::value &&
+                bits::fold_and <
+                    (std::is_constructible <Ts, Us &&>::value ||
+                     std::is_constructible <
+                        Ts, Us &&, Allocator const &
+                     >::value)...
+                >::value
+            >::type
+        >
         tuple (std::allocator_arg_t,
                Allocator const & alloc,
                tuple <Us...> && other)
-            : base (std::allocator_arg_t {},
-                    alloc,
-                    tuple <Us...>::base_slice (stl::move (other)))
+            : base (
+                std::allocator_arg_t {}, alloc,
+                detail::base_access <tuple <Us...>>::slice (stl::move (other))
+            )
         {}
 
-        template <class Allocator, class U1, class U2>
-        constexpr tuple (std::allocator_arg_t,
-                         Allocator const & alloc,
-                         pair <U1, U2> const & p)
-            : base (std::allocator_arg_t {}, alloc, p)
-        {}
-
-        template <class Allocator, class U1, class U2>
-        constexpr tuple (std::allocator_arg_t,
-                         Allocator const & alloc,
-                         pair <U1, U2> && p)
-            : base (std::allocator_arg_t {}, alloc, stl::move (p))
-        {}
-
+        /*
+         * Copy assignment operator of each member object by the corresponding
+         * member object of other.
+         */
         tuple & operator= (tuple const & other)
         {
-            base_slice (*this) = base_slice (other);
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple>::slice (other);
             return *this;
         }
 
+        /*
+         * Moveassignment operator of each member object by the corresponding
+         * member object of other, using move semantics.
+         */
         tuple & operator= (tuple && other)
             noexcept (noexcept (
                 stl::declval <base &> () = stl::declval <base &&> ()
             ))
         {
-            base_slice (*this) = base_slice (stl::move (other));
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple>::slice (stl::move (other));
             return *this;
         }
 
-        template <class ... Us>
+        /*
+         * Converting copy assignment operator of each member object by the
+         * corresponding member object of other.
+         *
+         * This assignment operator requires that
+         * sizeof... (Us) == sizeof... (Ts).
+         */
+        template <
+            class ... Us,
+            typename = typename std::enable_if <
+                sizeof... (Us) == size::value &&
+                bits::fold_and <
+                    std::is_assignable <Ts, Us const &>::value...
+                >::value
+            >::type
+        >
         tuple & operator= (tuple <Us...> const & other)
         {
-            base_slice (*this) = tuple <Us...>::base_slice (other);
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple <Us...>>::slice (other);
             return *this;
         }
 
-        template <class ... Us>
+        /*
+         * Converting move assignment operator of each member object by the
+         * corresponding member object of other, using move semantics.
+         *
+         * This assignment operator requires that
+         * sizeof... (Us) == sizeof... (Ts).
+         */
+        template <
+            class ... Us,
+            typename = typename std::enable_if <
+                sizeof... (Us) == size::value &&
+                bits::fold_and <
+                    std::is_assignable <Ts, Us &&>::value...
+                >::value
+            >::type
+        >
         tuple & operator= (tuple <Us...> && other)
         {
-            base_slice (*this) = tuple <Us...>::base_slice (stl::move (other));
+            detail::base_access <tuple>::slice (*this) =
+                detail::base_access <tuple <Us...>>::slice (stl::move (other));
             return *this;
         }
 
-        template <class U1, class U2>
-        tuple & operator= (pair <U1, U2> const & p)
-        {
-            base_slice (*this) = p;
-            return *this;
-        }
-
-        template <class U1, class U2>
-        tuple & operator= (pair <U1, U2> && p) noexcept
-        {
-            base_slice (*this) = stl::move (p);
-            return *this;
-        }
-
+        /*
+         * Swaps each member object with the corresponding member object of
+         * other.
+         */
         void swap (tuple & other)
             noexcept (noexcept (
-                stl::declval <base &> ().swap (stl::declval <base &&> ())
+                stl::declval <base &> ().swap (stl::declval <base &> ())
             ))
         {
-            base_slice (*this).swap (base_slice (other));
+            detail::base_access <tuple>::slice (*this).swap (
+                detail::base_access <tuple>::slice (other)
+            );
         }
     };
 
@@ -1246,146 +1693,6 @@ namespace detail
         return tuple <Ts &&...> (stl::forward <Ts> (ts)...);
     }
 
-namespace detail
-{
-    template <class ... Tup>
-    struct concat_type;
-
-    template <>
-    struct concat_type <>
-    {
-        using type = tuple <>;
-    };
-
-    template <class Tup>
-    struct concat_type <Tup>
-    {
-        using type = typename std::decay <Tup>::type;
-    };
-
-    template <class ... As, class ... Bs, class ... Tups>
-    struct concat_type <tuple <As...>, tuple <Bs...>, Tups...>
-    {
-        using type = typename concat_type <
-            tuple <As..., Bs...>, Tups...
-        >::type;
-    };
-
-    template <std::size_t N>
-    struct tuple_cat_helper;
-
-    template <>
-    struct tuple_cat_helper <0>
-    {
-        static constexpr tuple <> dispatch (void) noexcept
-        {
-            return tuple <> ();
-        }
-    };
-
-    template <>
-    struct tuple_cat_helper <1>
-    {
-        template <class Tuple>
-        static constexpr typename std::decay <Tuple>::type
-            dispatch (Tuple && t) noexcept
-        {
-            return std::decay <Tuple>::type (stl::forward <Tuple> (t));
-        }
-    };
-
-    template <>
-    struct tuple_cat_helper <2>
-    {
-        template <
-            std::size_t ... I1, std::size_t ... I2, class Tuple1, class Tuple2
-        >
-        static constexpr typename concat_type <Tuple1, Tuple2>::type
-            concat (stl::index_sequence <I1...>,
-                    stl::index_sequence <I2...>,
-                    Tuple1 && t1,
-                    Tuple2 && t2) noexcept
-        {
-            using result = typename concat_type <Tuple1, Tuple2>::type;
-            return result (
-                stl::get <I1> (stl::forward <Tuple1> (t1))...,
-                stl::get <I2> (stl::forward <Tuple2> (t2))...
-            );
-        }
-
-        template <class Tuple1, class Tuple2>
-        static constexpr typename concat_type <Tuple1, Tuple2>::type
-            dispatch (Tuple1 && t1, Tuple2 && t2) noexcept
-        {
-            using size1 = stl::tuple_size <Tuple1>;
-            using size2 = stl::tuple_size <Tuple2>;
-            return concat (
-                stl::make_index_sequence <size1::value> {},
-                stl::make_index_sequence <size2::value> {},
-                stl::forward <Tuple1> (t1),
-                stl::forward <Tuple2> (t2)
-            );
-        }
-    };
-
-    /*
-     * Because of the above specializations we know that N >= 3, which ensures
-     * correctness of the concat implementation.
-     */
-    template <std::size_t N>
-    struct tuple_cat_helper
-    {
-        template <
-            std::size_t ... I1, std::size_t ... I2,
-            class Tuple1, class Tuple2, class ... Tuples
-        >
-        static constexpr typename concat_type <Tuple1, Tuple2, Tuples...>::type
-            concat (stl::index_sequence <I1...>,
-                    stl::index_sequence <I2...>,
-                    Tuple1 && t1, Tuple2 && t2,
-                    Tuples && ... ts)
-        {
-            using partial = typename concat_type <Tuple1, Tuple2>::type;
-            return tuple_cat_helper <2>::dispatch (
-                partial (get <I1> (stl::forward <Tuple1> (t1))...,
-                         get <I2> (stl::forward <Tuple2> (t2))...),
-                tuple_cat_helper <N - 2>::dispatch (
-                    stl::forward <Tuples> (ts)...
-                )
-            );
-        }
-
-        template <class Tuple1, class Tuple2, class ... Tuples>
-        static constexpr typename concat_type <Tuple1, Tuple2, Tuples...>::type
-            dispatch (Tuple1 && t1, Tuple2 && t2, Tuples && ... ts) noexcept
-        {
-            using size1 = stl::tuple_size <Tuple1>;
-            using size2 = stl::tuple_size <Tuple2>;
-            return concat (
-                stl::make_index_sequence <size1::value> {},
-                stl::make_index_sequence <size2::value> {},
-                stl::forward <Tuple1> (t1),
-                stl::forward <Tuple2> (t2),
-                stl::forward <Tuples> (ts)...
-            );
-        }
-    };
-}
-    /*
-     * Concatenates one or more tuples with member objects ordered by the
-     * appearance in which their original tuples appeared as parameters.
-     *
-     * We use the C++14 signature.
-     */
-    template <class ... Tuples>
-    constexpr typename detail::concat_type <Tuples...>::type
-        tuple_cat (Tuples && ... tuples)
-    {
-        return detail::tuple_cat_helper <sizeof... (Tuples)>::dispatch (
-            stl::forward <Tuples> (tuples)...
-        );
-    }
-
     /*
      * Index based get <>. This does not compile if the index is greater than
      * one less than the number of types.
@@ -1394,6 +1701,36 @@ namespace detail
      */
 namespace detail
 {
+    template <class ... Ts>
+    struct base_access <tuple <Ts...>>
+    {
+        using base = typename tuple <Ts...>::base;
+
+        /*
+         * These are helper methods for object-slicing references to our tuple
+         * into references to the tuple_impl.
+         */
+        static base & slice (tuple <Ts...> & t) noexcept
+        {
+            return static_cast <base &> (t);
+        }
+
+        static base const & slice (tuple <Ts...> const & t) noexcept
+        {
+            return static_cast <base const &> (t);
+        }
+
+        static base && slice (tuple <Ts...> && t) noexcept
+        {
+            return static_cast <base &&> (stl::move (t));
+        }
+
+        static base const && slice (tuple <Ts...> const && t) noexcept
+        {
+            return static_cast <base const &&> (stl::move (t));
+        }
+    };
+
     template <class ... Ts>
     struct get_impl <tuple <Ts...>>
     {
@@ -1430,9 +1767,27 @@ namespace detail
 
             return stl::forward <type &&> (static_cast <node &> (t).member);
         }
+
+        template <std::size_t I>
+        static constexpr
+        typename stl::tuple_element <I, tuple <Ts...>>::type const &&
+            do_get (tuple <Ts...> const && t) noexcept
+        {
+            using tup  = tuple <Ts...>;
+            using type = typename stl::tuple_element <I, tup>::type;
+            using node = typename tup::base::template type_node <I, type>;
+
+            return stl::forward <type const &&> (
+                static_cast <node const &> (t).member
+            );
+        }
     };
 }   // namespace detail
 
+    /*
+     * While we're at it, we can also implement the C++17 rvalue reference to
+     * const overload for index and type based get.
+     */
     template <std::size_t I, class ... Ts>
     constexpr typename stl::tuple_element <I, tuple <Ts...>>::type &
         get (tuple <Ts...> & t) noexcept
@@ -1450,6 +1805,15 @@ namespace detail
     template <std::size_t I, class ... Ts>
     constexpr typename stl::tuple_element <I, tuple <Ts...>>::type &&
         get (tuple <Ts...> && t) noexcept
+    {
+        return detail::get_impl <tuple <Ts...>>::template do_get <I> (
+            stl::move (t)
+        );
+    }
+
+    template <std::size_t I, class ... Ts>
+    constexpr typename stl::tuple_element <I, tuple <Ts...>>::type const &&
+        get (tuple <Ts...> const && t) noexcept
     {
         return detail::get_impl <tuple <Ts...>>::template do_get <I> (
             stl::move (t)
@@ -1504,6 +1868,182 @@ namespace detail
         return get <index::value> (stl::move (t));
     }
 
+    template <class S, class ... Ts>
+    constexpr S const && get (tuple <Ts...> const && t) noexcept
+    {
+        static_assert (sizeof... (Ts) != 0, "cannot extract from empty tuple");
+
+        using index        = bits::type_index <S, Ts...>;
+        using multiplicity = bits::type_multiplicity <S, Ts...>;
+        static_assert (
+            multiplicity::value == 1, "cannot extract repeated element type"
+        );
+
+        return get <index::value> (stl::move (t));
+    }
+
+namespace detail
+{
+    template <class ... Tup>
+    struct concat_type;
+
+    template <>
+    struct concat_type <>
+    {
+        using type = tuple <>;
+    };
+
+    template <class Tup>
+    struct concat_type <Tup>
+    {
+        using type = typename std::decay <Tup>::type;
+    };
+
+    template <class ... As, class ... Bs, class ... Tups>
+    struct concat_type <tuple <As...>, tuple <Bs...>, Tups...>
+    {
+        using type = typename concat_type <
+            tuple <As..., Bs...>, Tups...
+        >::type;
+    };
+
+    template <std::size_t N>
+    struct tuple_cat_helper;
+
+    template <>
+    struct tuple_cat_helper <0>
+    {
+        static constexpr tuple <> dispatch (void) noexcept
+        {
+            return tuple <> ();
+        }
+    };
+
+    template <>
+    struct tuple_cat_helper <1>
+    {
+        template <class Tuple>
+        static constexpr typename std::decay <Tuple>::type
+            dispatch (Tuple && t) noexcept
+        {
+            return typename std::decay <Tuple>::type (stl::forward <Tuple> (t));
+        }
+    };
+
+    template <>
+    struct tuple_cat_helper <2>
+    {
+        template <
+            std::size_t ... I1, std::size_t ... I2, class Tuple1, class Tuple2
+        >
+        static constexpr typename concat_type <
+            typename std::decay <Tuple1>::type,
+            typename std::decay <Tuple2>::type
+        >::type
+            concat (stl::index_sequence <I1...>,
+                    stl::index_sequence <I2...>,
+                    Tuple1 && t1,
+                    Tuple2 && t2) noexcept
+        {
+            using result = typename concat_type <
+                typename std::decay <Tuple1>::type,
+                typename std::decay <Tuple2>::type
+            >::type;
+            return result (
+                stl::get <I1> (stl::forward <Tuple1> (t1))...,
+                stl::get <I2> (stl::forward <Tuple2> (t2))...
+            );
+        }
+
+        template <class Tuple1, class Tuple2>
+        static constexpr typename concat_type <
+            typename std::decay <Tuple1>::type,
+            typename std::decay <Tuple2>::type
+        >::type
+            dispatch (Tuple1 && t1, Tuple2 && t2) noexcept
+        {
+            using size1 = stl::tuple_size <typename std::decay <Tuple1>::type>;
+            using size2 = stl::tuple_size <typename std::decay <Tuple2>::type>;
+            return concat (
+                stl::make_index_sequence <size1::value> {},
+                stl::make_index_sequence <size2::value> {},
+                stl::forward <Tuple1> (t1),
+                stl::forward <Tuple2> (t2)
+            );
+        }
+    };
+
+    /*
+     * Because of the above specializations we know that N >= 3, which ensures
+     * correctness of the concat implementation.
+     */
+    template <std::size_t N>
+    struct tuple_cat_helper
+    {
+        template <
+            std::size_t ... I1, std::size_t ... I2,
+            class Tuple1, class Tuple2, class ... Tuples
+        >
+        static constexpr typename concat_type <
+            typename std::decay <Tuple1>::type,
+            typename std::decay <Tuple2>::type,
+            typename std::decay <Tuples>::type...
+        >::type
+            concat (stl::index_sequence <I1...>,
+                    stl::index_sequence <I2...>,
+                    Tuple1 && t1, Tuple2 && t2,
+                    Tuples && ... ts)
+        {
+            using partial = typename concat_type <
+                typename std::decay <Tuple1>::type,
+                typename std::decay <Tuple2>::type
+            >::type;
+            return tuple_cat_helper <2>::dispatch (
+                partial (get <I1> (stl::forward <Tuple1> (t1))...,
+                         get <I2> (stl::forward <Tuple2> (t2))...),
+                tuple_cat_helper <N - 2>::dispatch (
+                    stl::forward <Tuples> (ts)...
+                )
+            );
+        }
+
+        template <class Tuple1, class Tuple2, class ... Tuples>
+        static constexpr typename concat_type <
+            typename std::decay <Tuple1>::type,
+            typename std::decay <Tuple2>::type,
+            typename std::decay <Tuples>::type...
+        >::type
+            dispatch (Tuple1 && t1, Tuple2 && t2, Tuples && ... ts) noexcept
+        {
+            using size1 = stl::tuple_size <typename std::decay <Tuple1>::type>;
+            using size2 = stl::tuple_size <typename std::decay <Tuple2>::type>;
+            return concat (
+                stl::make_index_sequence <size1::value> {},
+                stl::make_index_sequence <size2::value> {},
+                stl::forward <Tuple1> (t1),
+                stl::forward <Tuple2> (t2),
+                stl::forward <Tuples> (ts)...
+            );
+        }
+    };
+}
+    /*
+     * Concatenates one or more tuples with member objects ordered by the
+     * appearance in which their original tuples appeared as parameters.
+     *
+     * We use the C++14 signature.
+     */
+    template <class ... Tuples>
+    constexpr typename detail::concat_type <
+        typename std::decay <Tuples>::type...
+    >::type
+        tuple_cat (Tuples && ... tuples)
+    {
+        return detail::tuple_cat_helper <sizeof... (Tuples)>::dispatch (
+            stl::forward <Tuples> (tuples)...
+        );
+    }
+
     /*
      * This is our free-function swap specialization for tuples. It will simply
      * forward to the member swap function for tuple.
@@ -1545,7 +2085,8 @@ namespace detail
             using lhs_tuple = tuple <Ts...>;
             using rhs_tuple = tuple <Ts...>;
 
-            return lhs_tuple::base_slice (lhs) == rhs_tuple::base_slice (rhs);
+            return detail::base_access <lhs_tuple>::slice (lhs) ==
+                detail::base_access <rhs_tuple>::slice (rhs);
         }
 
         template <class ... Ts, class ... Us>
@@ -1555,7 +2096,8 @@ namespace detail
             using lhs_tuple = tuple <Ts...>;
             using rhs_tuple = tuple <Ts...>;
 
-            return lhs_tuple::base_slice (lhs) < rhs_tuple::base_slice (rhs);
+            return detail::base_access <lhs_tuple>::slice (lhs) <
+                detail::base_access <rhs_tuple>::slice (rhs);
         }
     };
 }   // namespace detail
@@ -1633,4 +2175,4 @@ namespace detail
     {}
 }   // namespace stl
 
-#endif  // #ifndef STL_FROM_SCRATCH_TUPlE_HEADER
+#endif  // #ifndef STL_FROM_SCRATCH_TUPLE_HEADER

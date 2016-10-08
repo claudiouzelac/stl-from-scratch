@@ -76,9 +76,6 @@ namespace bits
     template <>
     struct fold_and <> : std::integral_constant <bool, true> {};
 
-    template <bool b>
-    struct fold_and <b> : std::integral_constant <bool, b> {};
-
     template <bool b, bool ... bs>
     struct fold_and <b, bs...>
         : std::integral_constant <bool, b && fold_and <bs...>::value> {};
